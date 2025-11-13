@@ -1,0 +1,382 @@
+{
+  "1434210915494138059": {
+    "modLogChannelId": "1437475869856760011",
+    "ticketsChannelId": "1437472525746442240",
+    "bugChannelId": null,
+    "userReportsChannelId": null,
+    "welcomeChannelId": "1436764628951765132",
+    "welcome": {
+      "enabled": true,
+      "channelId": "1437468352518815744",
+      "message": "benvenuto {user}",
+      "embed": {
+        "enabled": true,
+        "title": "☁️ Benvenuto nel server ufficiale di Nimbus!",
+        "description": "Qui puoi segnalare bug, dare feedback, richiedere aiuto o restare aggiornato sulle nuove feature.",
+        "color": 5793266,
+        "thumbnail": "user",
+        "customThumbUrl": null,
+        "imageUrl": null,
+        "footer": null
+      },
+      "pingUser": true,
+      "autoroleId": "1437466667293741177"
+    },
+    "automod": {
+      "enabled": true,
+      "antispam": {
+        "enabled": true,
+        "windowMs": 7000,
+        "maxMsgs": 6,
+        "repeatTrigger": 3,
+        "timeoutMs": 600000
+      },
+      "antiflood": {
+        "enabled": true,
+        "windowMs": 4000,
+        "maxMsgs": 5,
+        "timeoutMs": 300000
+      },
+      "antiscam": {
+        "enabled": true,
+        "timeoutMs": 3600000
+      },
+      "antiraid": {
+        "enabled": true,
+        "windowMs": 60000,
+        "joinSpike": 6,
+        "raidTimeoutMs": 300000
+      },
+      "captcha": {
+        "enabled": true,
+        "timeoutFailMs": 3600000,
+        "timeToSolveMs": 90000,
+        "codeLength": 5
+      },
+      "antinuke": {
+        "enabled": true,
+        "windowMs": 45000,
+        "channelDeletes": 4,
+        "roleDeletes": 4,
+        "memberKicks": 5,
+        "actionTimeoutMs": 3600000
+      }
+    },
+    "createdAt": "2025-11-08T10:34:01.255Z"
+  },
+  "1436479081045561396": {
+    "createdAt": "2025-11-08T10:34:01.274Z",
+    "automod": {
+      "enabled": true,
+      "antispam": {
+        "enabled": true,
+        "windowMs": 7000,
+        "maxMsgs": 6,
+        "repeatTrigger": 3,
+        "timeoutMs": 600000
+      },
+      "antiflood": {
+        "enabled": true,
+        "windowMs": 4000,
+        "maxMsgs": 5,
+        "timeoutMs": 300000
+      },
+      "antiscam": {
+        "enabled": true,
+        "timeoutMs": 3600000
+      },
+      "antiraid": {
+        "enabled": true,
+        "windowMs": 60000,
+        "joinSpike": 6,
+        "raidTimeoutMs": 300000
+      },
+      "captcha": {
+        "enabled": true,
+        "timeoutFailMs": 3600000,
+        "timeToSolveMs": 90000,
+        "codeLength": 5
+      },
+      "antinuke": {
+        "enabled": true,
+        "windowMs": 45000,
+        "channelDeletes": 4,
+        "roleDeletes": 4,
+        "memberKicks": 5,
+        "actionTimeoutMs": 3600000
+      }
+    }
+  },
+  "1436486787714256959": {
+    "createdAt": "2025-11-08T10:34:01.275Z",
+    "automod": {
+      "enabled": true,
+      "antispam": {
+        "enabled": true,
+        "windowMs": 7000,
+        "maxMsgs": 6,
+        "repeatTrigger": 3,
+        "timeoutMs": 600000
+      },
+      "antiflood": {
+        "enabled": true,
+        "windowMs": 4000,
+        "maxMsgs": 5,
+        "timeoutMs": 300000
+      },
+      "antiscam": {
+        "enabled": true,
+        "timeoutMs": 3600000
+      },
+      "antiraid": {
+        "enabled": true,
+        "windowMs": 60000,
+        "joinSpike": 6,
+        "raidTimeoutMs": 300000
+      },
+      "captcha": {
+        "enabled": true,
+        "timeoutFailMs": 3600000,
+        "timeToSolveMs": 90000,
+        "codeLength": 5
+      },
+      "antinuke": {
+        "enabled": true,
+        "windowMs": 45000,
+        "channelDeletes": 4,
+        "roleDeletes": 4,
+        "memberKicks": 5,
+        "actionTimeoutMs": 3600000
+      }
+    }
+  },
+  "1174849676630036510": {
+    "modLogChannelId": null,
+    "ticketsChannelId": "1437042409954607206",
+    "bugChannelId": "1175857561501716624",
+    "userReportsChannelId": null,
+    "welcomeChannelId": null,
+    "welcome": {
+      "enabled": false,
+      "channelId": null,
+      "message": "Benvenuto {user} in **{server}**! 🎉"
+    },
+    "automod": {
+      "enabled": true,
+      "antispam": {
+        "enabled": true,
+        "windowMs": 7000,
+        "maxMsgs": 6,
+        "repeatTrigger": 3,
+        "timeoutMs": 600000
+      },
+      "antiflood": {
+        "enabled": true,
+        "windowMs": 4000,
+        "maxMsgs": 5,
+        "timeoutMs": 300000
+      },
+      "antiscam": {
+        "enabled": true,
+        "timeoutMs": 3600000
+      },
+      "antiraid": {
+        "enabled": true,
+        "windowMs": 60000,
+        "joinSpike": 6,
+        "raidTimeoutMs": 300000
+      },
+      "captcha": {
+        "enabled": true,
+        "timeoutFailMs": 3600000,
+        "timeToSolveMs": 90000,
+        "codeLength": 5
+      },
+      "antinuke": {
+        "enabled": true,
+        "windowMs": 45000,
+        "channelDeletes": 4,
+        "roleDeletes": 4,
+        "memberKicks": 5,
+        "actionTimeoutMs": 3600000
+      }
+    }
+  },
+  "1437038895975104624": {
+    "modLogChannelId": null,
+    "ticketsChannelId": null,
+    "bugChannelId": null,
+    "userReportsChannelId": null,
+    "welcomeChannelId": null,
+    "welcome": {
+      "enabled": true,
+      "channelId": "1437142063501279352",
+      "message": "Benvenuto {user} in **{server}**! 🎉",
+      "embed": {
+        "enabled": true,
+        "title": "Benvenuto {user}!",
+        "description": "Sei entrato in **{server}** 🎉",
+        "color": 5793266,
+        "thumbnail": "user",
+        "customThumbUrl": null,
+        "imageUrl": null,
+        "footer": null
+      },
+      "pingUser": true
+    },
+    "automod": {
+      "enabled": true,
+      "antispam": {
+        "enabled": true,
+        "windowMs": 7000,
+        "maxMsgs": 6,
+        "repeatTrigger": 3,
+        "timeoutMs": 600000
+      },
+      "antiflood": {
+        "enabled": true,
+        "windowMs": 4000,
+        "maxMsgs": 5,
+        "timeoutMs": 300000
+      },
+      "antiscam": {
+        "enabled": true,
+        "timeoutMs": 3600000
+      },
+      "antiraid": {
+        "enabled": true,
+        "windowMs": 60000,
+        "joinSpike": 6,
+        "raidTimeoutMs": 300000
+      },
+      "captcha": {
+        "enabled": true,
+        "timeoutFailMs": 3600000,
+        "timeToSolveMs": 90000,
+        "codeLength": 5
+      },
+      "antinuke": {
+        "enabled": true,
+        "windowMs": 45000,
+        "channelDeletes": 4,
+        "roleDeletes": 4,
+        "memberKicks": 5,
+        "actionTimeoutMs": 3600000
+      }
+    }
+  },
+  "1437144576556011653": {
+    "modLogChannelId": null,
+    "ticketsChannelId": null,
+    "bugChannelId": null,
+    "userReportsChannelId": null,
+    "welcomeChannelId": null,
+    "welcome": {
+      "enabled": false,
+      "channelId": null,
+      "message": "Benvenuto {user} in **{server}**! 🎉"
+    },
+    "automod": {
+      "enabled": true,
+      "antispam": {
+        "enabled": true,
+        "windowMs": 7000,
+        "maxMsgs": 6,
+        "repeatTrigger": 3,
+        "timeoutMs": 600000
+      },
+      "antiflood": {
+        "enabled": true,
+        "windowMs": 4000,
+        "maxMsgs": 5,
+        "timeoutMs": 300000
+      },
+      "antiscam": {
+        "enabled": true,
+        "timeoutMs": 3600000
+      },
+      "antiraid": {
+        "enabled": true,
+        "windowMs": 60000,
+        "joinSpike": 6,
+        "raidTimeoutMs": 300000
+      },
+      "captcha": {
+        "enabled": true,
+        "timeoutFailMs": 3600000,
+        "timeToSolveMs": 90000,
+        "codeLength": 5
+      },
+      "antinuke": {
+        "enabled": true,
+        "windowMs": 45000,
+        "channelDeletes": 4,
+        "roleDeletes": 4,
+        "memberKicks": 5,
+        "actionTimeoutMs": 3600000
+      }
+    }
+  },
+  "1437894501585784934": {
+    "modLogChannelId": "1438179619089158257",
+    "ticketsChannelId": "1437926081201180712",
+    "bugChannelId": null,
+    "userReportsChannelId": "1438072226774781952",
+    "welcomeChannelId": null,
+    "welcome": {
+      "enabled": true,
+      "channelId": "1437922699467817203",
+      "message": "Benvenuto {user} in **{server}**! 🎉",
+      "embed": {
+        "enabled": true,
+        "thumbnail": "server",
+        "customThumbUrl": null,
+        "title": "☁️ Benvenuto su Nimbus",
+        "description": "Benvenuto nel server ufficiale di **Nimbus**, la piattaforma di automazione e moderazione per Discord.\n\n> Leggi le #📗┆rules e segui i canali dedicati per restare aggiornato su novità e miglioramenti.\n> Per assistenza o segnalazioni, apri un ticket in #🎫┆support-ticket.",
+        "footer": "nimbus • cloud automation"
+      },
+      "autoroleId": "1437907253423378644",
+      "pingUser": true
+    },
+    "automod": {
+      "enabled": true,
+      "antispam": {
+        "enabled": true,
+        "windowMs": 7000,
+        "maxMsgs": 6,
+        "repeatTrigger": 3,
+        "timeoutMs": 600000
+      },
+      "antiflood": {
+        "enabled": true,
+        "windowMs": 4000,
+        "maxMsgs": 5,
+        "timeoutMs": 300000
+      },
+      "antiscam": {
+        "enabled": true,
+        "timeoutMs": 3600000
+      },
+      "antiraid": {
+        "enabled": true,
+        "windowMs": 60000,
+        "joinSpike": 6,
+        "raidTimeoutMs": 300000
+      },
+      "captcha": {
+        "enabled": true,
+        "timeoutFailMs": 3600000,
+        "timeToSolveMs": 90000,
+        "codeLength": 5
+      },
+      "antinuke": {
+        "enabled": true,
+        "windowMs": 45000,
+        "channelDeletes": 4,
+        "roleDeletes": 4,
+        "memberKicks": 5,
+        "actionTimeoutMs": 3600000
+      }
+    }
+  }
+}
