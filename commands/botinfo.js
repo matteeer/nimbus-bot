@@ -4,13 +4,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Serve per ottenere il percorso assoluto (compatibile con import.meta.url)
+// Percorsi compatibili con import.meta.url
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Legge il package.json per prendere la versione
+// Legge package.json per recuperare la versione
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
 
+// Utility
 function formatYearsAgo(date) {
   const now = new Date();
   const years = Math.floor((now - date) / (1000 * 60 * 60 * 24 * 365));
@@ -21,6 +22,7 @@ function formatMB(bytes) {
   return `${Math.round(bytes / 1024 / 1024)} MB`;
 }
 
+// Slash command
 export const data = new SlashCommandBuilder()
   .setName('botinfo')
   .setDescription('Mostra informazioni su Nimbus');
@@ -28,10 +30,10 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction) {
   const { client } = interaction;
 
+  await interaction.deferReply({ ephemeral: false });
+
   const created = interaction.createdTimestamp;
   const apiPing = Math.round(client.ws.ping);
-
-  await interaction.deferReply({ ephemeral: false });
 
   const botCreatedAt = client.user.createdAt;
   const yearsAgo = formatYearsAgo(botCreatedAt);
@@ -39,39 +41,54 @@ export async function execute(interaction) {
   const mem = process.memoryUsage();
   const ram = formatMB(mem.rss);
 
-  const platformMap = { win32: 'windows', linux: 'linux', darwin: 'macOS' };
+  const platformMap = { win32: 'Windows', linux: 'Linux', darwin: 'macOS' };
   const platform = platformMap[process.platform] ?? process.platform;
 
+  // Primo embed
   const embed = new EmbedBuilder()
     .setColor(0x5865F2)
-    .setAuthor({ name: 'Nimbus#3051' })
+    .setAuthor({ name: 'Nimbus', iconURL: client.user.displayAvatarURL() })
     .setThumbnail(client.user.displayAvatarURL({ size: 256 }))
     .addFields(
       {
         name: '🤖 Bot',
         value:
           `**Ping:** \`${apiPing}ms\`\n` +
-          `**Start:** \`${yearsAgo}\`\n` +
-          `**Version:** \`v${pkg.version}\``,
-        inline: true,
+          `**Creato:** \`${yearsAgo}\`\n` +
+          `**Versione:** \`v${pkg.version}\``,
+        inline: true
       },
       {
         name: '📊 Stats',
         value:
           `**Ram:** \`${ram}\`\n` +
-          `**Platform:** \`${platform}\`\n` +
+          `**Piattaforma:** \`${platform}\`\n` +
           `**Bot ID:** \`${client.user.id}\``,
-        inline: true,
+        inline: true
       }
     )
     .setFooter({ text: 'Nimbus • /botinfo' })
     .setTimestamp();
 
   const reply = await interaction.editReply({ embeds: [embed] });
+
   const roundTrip = reply.createdTimestamp - created;
 
-  const edited = EmbedBuilder.from(embed)
-    .addFields({ name: '⏱️ Extra', value: `**Round-trip:** \`${roundTrip}ms\``, inline: false });
+  // Embed finale aggiornato
+  const finalEmbed = EmbedBuilder.from(embed)
+    .addFields(
+      {
+        name: '⏱️ Extra',
+        value: `**Round-trip:** \`${roundTrip}ms\``,
+        inline: false
+      },
+      {
+        name: '🔗 Links',
+        value:
+          `[🌐 Sito Ufficiale](https://nimbusbot.vercel.app/)\n` +
+          `[💬 Server di Supporto](https://discord.gg/An9DGJHhg4)`
+      }
+    );
 
-  await interaction.editReply({ embeds: [edited] });
+  await interaction.editReply({ embeds: [finalEmbed] });
 }
