@@ -200,6 +200,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (id.startsWith('HELP_')) return await handleHelpButton(interaction);
       if (id.startsWith('NIMBUS_WEL_')) return await handleWelcomeButton(interaction);
       if (id.startsWith('NIMBUS_TICKET_')) return await handleTicketButton(interaction);
+      if (id.startsWith('NIMBUS_LOCK_')) return await handleLockButton(interaction);
     } catch (e) {
       console.error('Button handler error:', e);
       if (!interaction.replied && !interaction.deferred) {
