@@ -1,12 +1,14 @@
-// commands/automod.js
+// commands/setupautomod.js
 import {
   SlashCommandBuilder,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  PermissionFlagsBits,
 } from 'discord.js';
-import { ensureGuild, getGuildSettings, saveGuild } from '../utils/settings.js';
+
+import { ensureGuild, getGuildSettings } from '../utils/settings.js';
 
 export const data = new SlashCommandBuilder()
   .setName('setup')
@@ -14,17 +16,23 @@ export const data = new SlashCommandBuilder()
   .addSubcommand(sub =>
     sub
       .setName('automod')
-      .setDescription('Configura il sistema AutoMod.')
-  );
+      .setDescription('Configura il sistema AutoMod.'),
+  )
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+  .setDMPermission(false);
 
 export async function execute(interaction) {
   if (interaction.options.getSubcommand() !== 'automod') return;
 
   const guildId = interaction.guild.id;
   ensureGuild(guildId);
+  const settings = getGuildSettings(guildId);
 
-  const s = getGuildSettings(guildId);
-  const enabled = s.automod?.enabled ?? false;
+  if (!settings.automod) {
+    settings.automod = { enabled: false };
+  }
+
+  const enabled = !!settings.automod.enabled;
 
   const embed = new EmbedBuilder()
     .setColor(0x5865f2)
@@ -36,10 +44,10 @@ export async function execute(interaction) {
         '**Funzionalità principali**',
         '• Rilevamento spam',
         '• Rilevamento mass mention',
-        '• Blocca parole vietate',
+        '• Blocca alcune parole vietate',
         '',
-        `**Stato attuale:** \`${enabled ? 'Attivo' : 'Disattivo'}\``
-      ].join('\n')
+        `**Stato attuale:** \`${enabled ? 'Attivo' : 'Disattivo'}\``,
+      ].join('\n'),
     )
     .setTimestamp();
 
@@ -48,33 +56,37 @@ export async function execute(interaction) {
       .setCustomId('AUTOMOD_ENABLE')
       .setLabel('Attiva')
       .setStyle(ButtonStyle.Success),
+
     new ButtonBuilder()
       .setCustomId('AUTOMOD_DISABLE')
       .setLabel('Disattiva')
-      .setStyle(ButtonStyle.Danger)
+      .setStyle(ButtonStyle.Danger),
   );
 
-  await interaction.reply({ embeds: [embed], components: [row] });
+  await interaction.reply({
+    embeds: [embed],
+    components: [row],
+  });
 }
 
-// HANDLER BOTTONI
 export async function handleAutomodButtons(interaction) {
   const id = interaction.customId;
   const guildId = interaction.guild.id;
 
   ensureGuild(guildId);
-  const s = getGuildSettings(guildId);
+  const settings = getGuildSettings(guildId);
+  if (!settings.automod) settings.automod = { enabled: false };
 
   if (id === 'AUTOMOD_ENABLE') {
-    s.automod.enabled = true;
+    settings.automod.enabled = true;
   } else if (id === 'AUTOMOD_DISABLE') {
-    s.automod.enabled = false;
+    settings.automod.enabled = false;
+  } else {
+    return;
   }
 
-  saveGuild(guildId, s);
-
   await interaction.reply({
-    content: `✅ AutoMod è stato **${s.automod.enabled ? 'attivato' : 'disattivato'}**.`,
-    ephemeral: true
+    content: `✅ AutoMod è stato **${settings.automod.enabled ? 'attivato' : 'disattivato'}**.`,
+    ephemeral: true,
   });
 }

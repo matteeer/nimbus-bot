@@ -11,7 +11,7 @@ import {
   TextInputStyle,
 } from 'discord.js';
 
-import { ensureGuild, getGuildSettings, saveGuild } from '../utils/settings.js';
+import { ensureGuild, getGuildSettings } from '../utils/settings.js';
 
 // =======================
 //  Default config
@@ -138,7 +138,6 @@ export async function execute(interaction) {
   const settings = getGuildSettings(guildId);
   if (!settings.welcome) {
     settings.welcome = getDefaultWelcome();
-    saveGuild(guildId, settings);
   }
 
   const embed = buildWelcomePanelEmbed(interaction.guild, settings);
@@ -166,7 +165,6 @@ export async function handleWelcomeButton(interaction) {
   // ON/OFF
   if (id === 'NIMBUS_WEL_TOGGLE') {
     w.enabled = !w.enabled;
-    saveGuild(guildId, settings);
 
     const embed = buildWelcomePanelEmbed(interaction.guild, settings);
     const row = buildWelcomePanelRow(settings);
@@ -176,7 +174,6 @@ export async function handleWelcomeButton(interaction) {
   // Imposta canale = canale corrente
   if (id === 'NIMBUS_WEL_CH') {
     w.channelId = interaction.channel.id;
-    saveGuild(guildId, settings);
 
     const embed = buildWelcomePanelEmbed(interaction.guild, settings);
     const row = buildWelcomePanelRow(settings);
@@ -196,7 +193,6 @@ export async function handleWelcomeButton(interaction) {
       w.mode = 'embed';
     }
 
-    saveGuild(guildId, settings);
     const embed = buildWelcomePanelEmbed(interaction.guild, settings);
     const row = buildWelcomePanelRow(settings);
     return interaction.update({ embeds: [embed], components: [row] });
@@ -297,8 +293,6 @@ export async function handleWelcomeModal(interaction) {
       if (w.embed) w.embed.enabled = false;
     }
 
-    saveGuild(guildId, settings);
-
     if (interaction.message) {
       const panelEmbed = buildWelcomePanelEmbed(interaction.guild, settings);
       const row = buildWelcomePanelRow(settings);
@@ -317,7 +311,6 @@ export async function handleWelcomeModal(interaction) {
 
     if (!raw || raw.toLowerCase() === 'none' || raw.toLowerCase() === 'nessuno') {
       w.autoroleId = null;
-      saveGuild(guildId, settings);
 
       if (interaction.message) {
         const panelEmbed = buildWelcomePanelEmbed(interaction.guild, settings);
@@ -355,7 +348,6 @@ export async function handleWelcomeModal(interaction) {
     }
 
     w.autoroleId = role.id;
-    saveGuild(guildId, settings);
 
     if (interaction.message) {
       const panelEmbed = buildWelcomePanelEmbed(interaction.guild, settings);
@@ -380,3 +372,4 @@ export async function handleWelcomeSelect() {
 export async function handleWelcomeThumbUrlModal() {
   // non usato nella nuova versione
 }
+
