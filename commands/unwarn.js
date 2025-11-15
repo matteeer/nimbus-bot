@@ -20,6 +20,6 @@ export async function execute(interaction){
     const arr = getWarns(interaction.guild.id, u.id);
     return interaction.editReply({ embeds:[nEmbed(interaction.client,{ title:'Unwarn', description:`❌ Indice non valido. Questo utente ha **${arr.length}** warn.` })] });
   }
-  return interaction.editReply({ embeds:[nEmbed(interaction.client,{ title:'Unwarn', description:`✅ Rimosso warn #${idx} da **${u.tag}**.\n\nMotivo rimosso: ${removed.reason}` })] });
+  return interaction.editReply({ embeds:[nEmbed(interaction.client,{ title:'Unwarn', description:`✅ Rimosso warn #${idx} da **${u.tag}**.` })] });
 }
 

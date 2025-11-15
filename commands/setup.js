@@ -7,11 +7,10 @@ import {
 import { ensureGuild, getGuildSettings, setGuildSettings } from '../utils/settings.js';
 import { nEmbed } from '../utils/ui.js';
 
-const MODULES = ['global','antispam','antiflood','antiscam','antiraid','captcha','antinuke'];
 
 export const data = new SlashCommandBuilder()
   .setName('setup')
-  .setDescription('Configura Nimbus nel server (log, canali, automod).')
+  .setDescription('Configura Nimbus nel server (log, canali).')
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .addSubcommand(sc =>
     sc.setName('setlog')
@@ -42,21 +41,13 @@ export const data = new SlashCommandBuilder()
          .setRequired(true)
       )
   )
-  .addSubcommand(sc =>
-    sc.setName('automod')
-      .setDescription('Attiva/Disattiva un modulo AutoMod')
-      .addStringOption(o =>
-        o.setName('module')
-         .setDescription('Modulo')
-         .addChoices(...MODULES.map(m => ({ name: m, value: m })))
-         .setRequired(true)
-      )
+ 
       .addBooleanOption(o =>
         o.setName('enabled')
          .setDescription('ON/OFF')
          .setRequired(true)
       )
-  )
+  
   .setDMPermission(false);
 
 export async function execute(interaction) {
@@ -96,29 +87,4 @@ export async function execute(interaction) {
     });
   }
 
-  // /setup toggle
-  if (sub === 'automod') {
-    const module = interaction.options.getString('module', true);
-    const enabled = interaction.options.getBoolean('enabled', true);
-
-    const settings = getGuildSettings(interaction.guild.id) || {};
-    const automod = settings.automod || { enabled: true };
-
-    if (module === 'global') {
-      automod.enabled = enabled;
-    } else {
-      automod[module] = automod[module] || {};
-      automod[module].enabled = enabled;
-    }
-
-    setGuildSettings(interaction.guild.id, { ...settings, automod });
-
-    return interaction.editReply({
-      embeds: [nEmbed(interaction.client, { title: 'AutoMod', description: `✅ **${module}** → **${enabled ? 'ON' : 'OFF'}**` })],
-    });
-  }
-
-  return interaction.editReply({
-    embeds: [nEmbed(interaction.client, { title: 'Setup', description: '❌ Sottocomando non riconosciuto.' })],
-  });
 }

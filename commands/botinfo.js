@@ -76,7 +76,7 @@ export async function execute(interaction) {
       {
         name: '🔗 Links',
         value:
-          `[Sito Ufficiale](https://nimbusbot.vercel.app/)\n` +
+          `[Sito Ufficiale](https://nimbuscenter.vercel.app/)\n` +
           `[Server di Supporto](https://discord.gg/An9DGJHhg4)`,
         inline: false,
       },

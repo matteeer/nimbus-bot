@@ -1,22 +1,71 @@
 // commands/clear.js
-import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
-import { nEmbed } from '../utils/ui.js';
+import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  EmbedBuilder,
+} from 'discord.js';
 
 export const data = new SlashCommandBuilder()
-  .setName('clear').setDescription('Cancella un numero di messaggi nel canale')
-  .addIntegerOption(o=>o.setName('numero').setDescription('Da 1 a 100').setMinValue(1).setMaxValue(100).setRequired(true))
+  .setName('clear')
+  .setDescription('Cancella un numero di messaggi nel canale corrente.')
+  .addIntegerOption(opt =>
+    opt
+      .setName('quantità')
+      .setDescription('Numero di messaggi da rimuovere (1-100)')
+      .setRequired(true)
+      .setMinValue(1)
+      .setMaxValue(100),
+  )
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
   .setDMPermission(false);
 
 export async function execute(interaction) {
-  const n = interaction.options.getInteger('numero', true);
-  const ch = interaction.channel;
-  await interaction.deferReply({ ephemeral:true });
-  if (!ch.isTextBased()) return interaction.editReply({ embeds:[nEmbed(interaction.client,{ title:'Clear', description:'❌ Usa questo comando in un canale di testo.' })] });
+  if (!interaction.inGuild()) {
+    return interaction.reply({
+      content: '❌ Questo comando può essere usato solo in un server.',
+      ephemeral: true,
+    });
+  }
 
-  const deleted = await ch.bulkDelete(n, true).catch(()=>null);
-  if (!deleted) return interaction.editReply({ embeds:[nEmbed(interaction.client,{ title:'Clear', description:'❌ Non sono riuscito a cancellare (messaggi troppo vecchi o permessi mancanti).' })] });
+  const amount = interaction.options.getInteger('quantità', true);
+  const moderator = interaction.user;
+  const channel = interaction.channel;
 
-  return interaction.editReply({ embeds:[nEmbed(interaction.client,{ title:'Clear', description:`✅ Eliminati **${deleted.size}** messaggi.` })] });
+  if (!channel?.isTextBased()) {
+    return interaction.reply({
+      content: '❌ Questo comando funziona solo nei canali testuali.',
+      ephemeral: true,
+    });
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+
+  const deleted = await channel.bulkDelete(amount, true).catch(() => null);
+
+  if (!deleted) {
+    return interaction.editReply('❌ Errore durante l’eliminazione dei messaggi (forse troppo vecchi).');
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(0x5865f2)
+    .setAuthor({
+      name: moderator.tag,
+      iconURL: moderator.displayAvatarURL({ size: 128 }),
+    })
+    .setTitle('Clear')
+    .setDescription(
+      [
+        '✅ Operazione completata.',
+        '',
+        `Messaggi rimossi: **${deleted.size}**`,
+        `Canale: ${channel}`,
+      ].join('\n'),
+    )
+    .setTimestamp();
+
+  // messaggio pubblico nel canale
+  await channel.send({ embeds: [embed] }).catch(() => {});
+
+  await interaction.editReply('✅ Pulizia completata.');
 }
 

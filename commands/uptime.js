@@ -1,14 +1,16 @@
 // commands/uptime.js
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
-function formatUptime(ms) {
-  let seconds = Math.floor(ms / 1000);
-  const days = Math.floor(seconds / 86400);
-  seconds %= 86400;
-  const hours = Math.floor(seconds / 3600);
-  seconds %= 3600;
-  const minutes = Math.floor(seconds / 60);
-  seconds %= 60;
+export const data = new SlashCommandBuilder()
+  .setName('uptime')
+  .setDescription('Mostra da quanto tempo Nimbus è online.');
+
+function formatDuration(ms) {
+  const sec = Math.floor(ms / 1000);
+  const days = Math.floor(sec / 86400);
+  const hours = Math.floor((sec % 86400) / 3600);
+  const minutes = Math.floor((sec % 3600) / 60);
+  const seconds = sec % 60;
 
   const parts = [];
   if (days) parts.push(`${days}d`);
@@ -19,20 +21,33 @@ function formatUptime(ms) {
   return parts.join(' ');
 }
 
-export const data = new SlashCommandBuilder()
-  .setName('uptime')
-  .setDescription('Mostra da quanto tempo Nimbus è online');
-
 export async function execute(interaction) {
   const { client } = interaction;
-  const uptime = client.uptime ?? 0;
-  const formatted = formatUptime(uptime);
+
+  const uptimeMs = client.uptime ?? 0;
+  const uptimeStr = formatDuration(uptimeMs);
+
+  const readyAt = client.readyAt
+    ? `<t:${Math.floor(client.readyAt.getTime() / 1000)}:f>`
+    : 'N/D';
+
+  const botUser = client.user;
 
   const embed = new EmbedBuilder()
     .setColor(0x5865f2)
-    .setAuthor({ name: 'Nimbus • Uptime' })
-    .setDescription(`🕒 Nimbus è online da: \`${formatted}\``)
-    .setFooter({ text: 'Nimbus • /uptime' })
+    .setAuthor({
+      name: botUser.tag,
+      iconURL: botUser.displayAvatarURL({ size: 128 })
+    })
+    .setTitle('Nimbus Uptime')
+    .setDescription(
+      [
+        '✅ Nimbus è operativo.',
+        '',
+        `• **Uptime:** \`${uptimeStr}\``,
+        `• **Ultimo avvio:** ${readyAt}`
+      ].join('\n')
+    )
     .setTimestamp();
 
   await interaction.reply({ embeds: [embed] });
