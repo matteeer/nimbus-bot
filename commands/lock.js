@@ -14,6 +14,7 @@ export const data = new SlashCommandBuilder()
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
   .setDMPermission(false);
 
+// /lock
 export async function execute(interaction) {
   if (!interaction.inGuild()) {
     return interaction.reply({
@@ -32,7 +33,11 @@ export async function execute(interaction) {
 
   const everyone = interaction.guild.roles.everyone;
 
+  // ci mettiamo al sicuro da timeout → prima defer, poi tutto il resto
+  await interaction.deferReply({ ephemeral: true });
+
   try {
+    // blocca invio messaggi a everyone
     await channel.permissionOverwrites.edit(everyone, {
       SendMessages: false,
     });
@@ -42,7 +47,7 @@ export async function execute(interaction) {
       .setAuthor({ name: 'Nimbus • Lock' })
       .setDescription(
         `🔒 Il canale ${channel} è stato **bloccato** per \`@everyone\`.\n\n` +
-        'Usa il bottone qui sotto per sbloccarlo.'
+        'Un moderatore può usare il bottone qui sotto per **sbloccarlo**.'
       )
       .setFooter({ text: 'Nimbus • /lock' })
       .setTimestamp();
@@ -55,20 +60,27 @@ export async function execute(interaction) {
         .setEmoji('🔓'),
     );
 
-    await interaction.reply({
+    // messaggio pubblico nel canale
+    await channel.send({
       embeds: [embed],
       components: [row],
     });
+
+    // conferma SOLO a chi ha usato /lock (ephemeral)
+    await interaction.editReply({
+      content: `🔒 Canale ${channel} bloccato per \`@everyone\`.`,
+    });
   } catch (err) {
     console.error('lock error:', err);
-    await interaction.reply({
-      content: '❌ Non sono riuscito a bloccare il canale. Controlla i permessi di Nimbus.',
-      ephemeral: true,
-    });
+    if (interaction.deferred && !interaction.replied) {
+      await interaction.editReply({
+        content: '❌ Non sono riuscito a bloccare il canale. Controlla i permessi di Nimbus.',
+      }).catch(() => {});
+    }
   }
 }
 
-// Handler per il bottone di unlock
+// bottone "Sblocca canale"
 export async function handleLockButton(interaction) {
   if (!interaction.inGuild()) return;
 
@@ -78,6 +90,7 @@ export async function handleLockButton(interaction) {
   const parts = id.split(':');
   const channelId = parts[1];
 
+  // solo chi ha ManageChannels può sbloccare
   const member = interaction.member;
   if (!member.permissions.has(PermissionFlagsBits.ManageChannels)) {
     return interaction.reply({
@@ -99,33 +112,24 @@ export async function handleLockButton(interaction) {
 
   const everyone = interaction.guild.roles.everyone;
 
+  await interaction.deferReply({ ephemeral: true });
+
   try {
+    // resetta il permesso, torna al default
     await channel.permissionOverwrites.edit(everyone, {
-      SendMessages: null, // reset al default
+      SendMessages: null,
     });
 
-    // Proviamo ad aggiornare il messaggio (non è obbligatorio)
-    try {
-      const embed = EmbedBuilder.from(interaction.message.embeds[0] ?? {})
-        .setColor(0x57f287)
-        .setDescription(
-          `🔓 Il canale ${channel} è stato **sbloccato** per \`@everyone\`.`
-        );
-
-      await interaction.message.edit({ embeds: [embed], components: [] }).catch(() => {});
-    } catch {
-      // se fallisce l'edit, ignoriamo
-    }
-
-    await interaction.reply({
-      content: '✅ Canale sbloccato.',
-      ephemeral: true,
+    await interaction.editReply({
+      content: `✅ Il canale ${channel} è stato **sbloccato** per \`@everyone\`.`,
     });
   } catch (err) {
     console.error('unlock error:', err);
-    await interaction.reply({
-      content: '❌ Non sono riuscito a sbloccare il canale. Controlla i permessi di Nimbus.',
-      ephemeral: true,
-    });
+    if (interaction.deferred && !interaction.replied) {
+      await interaction.editReply({
+        content: '❌ Non sono riuscito a sbloccare il canale. Controlla i permessi di Nimbus.',
+      }).catch(() => {});
+    }
   }
 }
+
