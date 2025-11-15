@@ -130,7 +130,7 @@ function startPresenceRotation(c) {
     // normale rotazione
     const list = buildActivities(c);
     const next = list[i % list.length];
-    try { c.user.setPresence({ activities: [next], status: 'onlie' }); } catch {}
+    try { c.user.setPresence({ activities: [next], status: 'online' }); } catch {}
     i++;
   }
 
@@ -195,24 +195,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-if (interaction.isButton()) {
-  try {
-    const id = interaction.customId;
-    if (id.startsWith('HELP_')) return await handleHelpButton(interaction);
-    if (id.startsWith('NIMBUS_WEL_')) return await handleWelcomeButton(interaction);
-    if (id.startsWith('NIMBUS_TICKET_')) return await handleTicketButton(interaction);
-    if (id.startsWith('NIMBUS_LOCK_')) return await handleLockButton(interaction);
-  } catch (e) {
-    console.error('Button handler error:', e);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: '❌ Qualcosa è andato storto con il bottone.',
-        ephemeral: true,
-      }).catch(() => {});
+  // Bottoni
+  if (interaction.isButton()) {
+    try {
+      const id = interaction.customId;
+
+      if (id.startsWith('HELP_')) return await handleHelpButton(interaction);
+      if (id.startsWith('NIMBUS_WEL_')) return await handleWelcomeButton(interaction);
+      if (id.startsWith('NIMBUS_TICKET_')) return await handleTicketButton(interaction);
+      if (id.startsWith('NIMBUS_LOCK_')) return await handleLockButton(interaction);
+
+    } catch (e) {
+      console.error('Button handler error:', e);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: '❌ Qualcosa è andato storto con il bottone.',
+          ephemeral: true,
+        }).catch(() => {});
+      }
     }
+    return;
   }
-  return;
-}
 
 
   // Select menu (string/role/channel/user/mentionable)
