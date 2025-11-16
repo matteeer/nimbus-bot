@@ -65,7 +65,16 @@
     "createdAt": "2025-11-08T10:34:01.255Z"
   },
   "1436479081045561396": {
-    "createdAt": "2025-11-08T10:34:01.274Z",
+    "modLogChannelId": null,
+    "ticketsChannelId": null,
+    "bugChannelId": null,
+    "userReportsChannelId": null,
+    "welcomeChannelId": null,
+    "welcome": {
+      "enabled": false,
+      "channelId": null,
+      "message": "Benvenuto {user} in **{server}**! 🎉"
+    },
     "automod": {
       "enabled": true,
       "antispam": {
@@ -105,7 +114,8 @@
         "memberKicks": 5,
         "actionTimeoutMs": 3600000
       }
-    }
+    },
+    "createdAt": "2025-11-08T10:34:01.274Z"
   },
   "1436486787714256959": {
     "createdAt": "2025-11-08T10:34:01.275Z",

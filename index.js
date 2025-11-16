@@ -25,6 +25,8 @@ import {
   handleWelcomeThumbUrlModal
 } from './commands/welcome.js';
 import { handleLockButton } from './commands/lock.js';
+import { handleAutomodButtons } from './commands/setupautomod.js';
+
 
 
 // === Setup pathing ===
@@ -194,28 +196,29 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
     return;
   }
+  
+// Bottoni
+if (interaction.isButton()) {
+  try {
+    const id = interaction.customId;
 
-  // Bottoni
-  if (interaction.isButton()) {
-    try {
-      const id = interaction.customId;
+    if (id.startsWith('HELP_')) return await handleHelpButton(interaction);
+    if (id.startsWith('NIMBUS_WEL_')) return await handleWelcomeButton(interaction);
+    if (id.startsWith('NIMBUS_TICKET_')) return await handleTicketButton(interaction);
+    if (id.startsWith('NIMBUS_LOCK_')) return await handleLockButton(interaction);
+    if (id.startsWith('AUTOMOD_')) return await handleAutomodButtons(interaction);
 
-      if (id.startsWith('HELP_')) return await handleHelpButton(interaction);
-      if (id.startsWith('NIMBUS_WEL_')) return await handleWelcomeButton(interaction);
-      if (id.startsWith('NIMBUS_TICKET_')) return await handleTicketButton(interaction);
-      if (id.startsWith('NIMBUS_LOCK_')) return await handleLockButton(interaction);
-
-    } catch (e) {
-      console.error('Button handler error:', e);
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: '❌ Qualcosa è andato storto con il bottone.',
-          ephemeral: true,
-        }).catch(() => {});
-      }
+  } catch (e) {
+    console.error('Button handler error:', e);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: '❌ Qualcosa è andato storto con il bottone.',
+        ephemeral: true,
+      }).catch(() => {});
     }
-    return;
   }
+  return;
+}
 
 
   // Select menu (string/role/channel/user/mentionable)

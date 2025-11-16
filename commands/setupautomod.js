@@ -11,18 +11,18 @@ import {
 import { ensureGuild, getGuildSettings } from '../utils/settings.js';
 
 export const data = new SlashCommandBuilder()
-  .setName('setup')
-  .setDescription('Configura le funzioni di Nimbus.')
-  .addSubcommand(sub =>
-    sub
-      .setName('automod')
-      .setDescription('Configura il sistema AutoMod.'),
-  )
+  .setName('setupautomod')
+  .setDescription('Configura il sistema AutoMod di Nimbus.')
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
   .setDMPermission(false);
 
 export async function execute(interaction) {
-  if (interaction.options.getSubcommand() !== 'automod') return;
+  if (!interaction.inGuild()) {
+    return interaction.reply({
+      content: '❌ Questo comando può essere usato solo in un server.',
+      ephemeral: true,
+    });
+  }
 
   const guildId = interaction.guild.id;
   ensureGuild(guildId);
@@ -39,14 +39,14 @@ export async function execute(interaction) {
     .setTitle('AutoMod')
     .setDescription(
       [
-        'Configurazione del sistema AutoMod.',
+        'Configurazione del sistema AutoMod di Nimbus.',
         '',
-        '**Funzionalità principali**',
-        '• Rilevamento spam',
+        '**Funzionalità principali:**',
+        '• Rilevamento spam e flood',
         '• Rilevamento mass mention',
-        '• Blocca alcune parole vietate',
+        '• Blocca alcune parole vietate di base',
         '',
-        `**Stato attuale:** \`${enabled ? 'Attivo' : 'Disattivo'}\``,
+        `**Stato attuale:** \`${enabled ? 'Attivo' : 'Disattivato'}\``,
       ].join('\n'),
     )
     .setTimestamp();
@@ -56,7 +56,6 @@ export async function execute(interaction) {
       .setCustomId('AUTOMOD_ENABLE')
       .setLabel('Attiva')
       .setStyle(ButtonStyle.Success),
-
     new ButtonBuilder()
       .setCustomId('AUTOMOD_DISABLE')
       .setLabel('Disattiva')
@@ -66,10 +65,13 @@ export async function execute(interaction) {
   await interaction.reply({
     embeds: [embed],
     components: [row],
+    ephemeral: true,
   });
 }
 
 export async function handleAutomodButtons(interaction) {
+  if (!interaction.inGuild()) return;
+
   const id = interaction.customId;
   const guildId = interaction.guild.id;
 
@@ -85,8 +87,14 @@ export async function handleAutomodButtons(interaction) {
     return;
   }
 
-  await interaction.reply({
-    content: `✅ AutoMod è stato **${settings.automod.enabled ? 'attivato' : 'disattivato'}**.`,
-    ephemeral: true,
-  });
+  const enabled = settings.automod.enabled;
+
+  try {
+    await interaction.reply({
+      content: `✅ AutoMod è stato **${enabled ? 'attivato' : 'disattivato'}**.`,
+      ephemeral: true,
+    });
+  } catch {
+    // se ha già risposto, ignora
+  }
 }
