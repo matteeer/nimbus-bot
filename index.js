@@ -236,11 +236,11 @@ if (interaction.isButton()) {
   }
 
   // Modali
- if (interaction.isModalSubmit()) {
+if (interaction.isModalSubmit()) {
   try {
     const id = interaction.customId;
 
-    if (id.startsWith('NIMBUS_WEL_MODAL_')) {
+    if (id === 'NIMBUS_WEL_MODAL_MSG') {
       return await handleWelcomeModal(interaction);
     }
       // Ticket modali
@@ -251,14 +251,17 @@ if (interaction.isButton()) {
       ) {
         return await handleTicketModal(interaction);
       }
-    } catch (e) {
-      console.error('Modal handler error:', e);
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: '❌ Errore nella modale.', flags: MessageFlags.Ephemeral }).catch(()=>{});
-      }
+  } catch (e) {
+    console.error('Modal handler error:', e);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: '❌ Errore nella modale.',
+        ephemeral: true,
+      }).catch(() => {});
     }
-    return;
   }
+  return;
+}
 });
 
 // ===== Welcome on join (unico messaggio) =====

@@ -24,6 +24,57 @@ export const data = new SlashCommandBuilder()
       .setDescription('Mostra il pannello di configurazione del sistema welcome.'),
   );
 
+function buildWelcomeEmbed(guild, welcome) {
+  const w = welcome;
+
+  const channelLabel = w.channelId
+    ? (guild.channels.cache.get(w.channelId) || `#${w.channelId}`)
+    : 'Nessun canale configurato';
+
+  return new EmbedBuilder()
+    .setColor(0x5865f2)
+    .setTitle('Welcome • Configurazione')
+    .setDescription(
+      [
+        `**Stato:** \`${w.enabled ? 'Attivo' : 'Disattivato'}\``,
+        `**Canale:** ${channelLabel}`,
+        `**Ping utente:** \`${w.pingUser ? 'Sì' : 'No'}\``,
+        '',
+        '**Messaggio attuale:**',
+        w.message
+          ? `\`\`\`\n${w.message.slice(0, 300)}\n\`\`\``
+          : '_Nessun messaggio personalizzato. Verrà usato il default._',
+        '',
+        'Variabili disponibili nel testo:',
+        '`{user}` → menzione / nome utente',
+        '`{server}` → nome del server',
+      ].join('\n'),
+    )
+    .setFooter({ text: 'Nimbus • /welcome panel' })
+    .setTimestamp();
+}
+
+function buildWelcomeRow() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('NIMBUS_WEL_ENABLE')
+      .setLabel('Attiva welcome')
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId('NIMBUS_WEL_DISABLE')
+      .setLabel('Disattiva welcome')
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId('NIMBUS_WEL_TOGGLE_PING')
+      .setLabel('Ping utente ON/OFF')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('NIMBUS_WEL_SETMSG')
+      .setLabel('Modifica messaggio')
+      .setStyle(ButtonStyle.Primary),
+  );
+}
+
 export async function execute(interaction) {
   if (!interaction.inGuild()) {
     return interaction.reply({
@@ -48,52 +99,8 @@ export async function execute(interaction) {
     };
   }
 
-  const w = settings.welcome;
-
-  const channelLabel = w.channelId
-    ? (guild.channels.cache.get(w.channelId) || `#${w.channelId}`)
-    : 'Nessun canale configurato';
-
-  const embed = new EmbedBuilder()
-    .setColor(0x5865f2)
-    .setTitle('Welcome • Configurazione')
-    .setDescription(
-      [
-        `**Stato:** \`${w.enabled ? 'Attivo' : 'Disattivato'}\``,
-        `**Canale:** ${channelLabel}`,
-        `**Ping utente:** \`${w.pingUser ? 'Sì' : 'No'}\``,
-        '',
-        '**Messaggio attuale:**',
-        w.message
-          ? `\`\`\`\n${w.message.slice(0, 300)}\n\`\`\``
-          : '_Nessun messaggio personalizzato. Verrà usato il default._',
-        '',
-        'Variabili disponibili nel testo:',
-        '`{user}` → menzione / nome utente',
-        '`{server}` → nome del server',
-      ].join('\n'),
-    )
-    .setFooter({ text: 'Nimbus • /welcome panel' })
-    .setTimestamp();
-
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('NIMBUS_WEL_ENABLE')
-      .setLabel('Attiva welcome')
-      .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId('NIMBUS_WEL_DISABLE')
-      .setLabel('Disattiva welcome')
-      .setStyle(ButtonStyle.Danger),
-    new ButtonBuilder()
-      .setCustomId('NIMBUS_WEL_TOGGLE_PING')
-      .setLabel('Ping utente ON/OFF')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId('NIMBUS_WEL_SETMSG')
-      .setLabel('Modifica messaggio')
-      .setStyle(ButtonStyle.Primary),
-  );
+  const embed = buildWelcomeEmbed(guild, settings.welcome);
+  const row = buildWelcomeRow();
 
   return interaction.reply({
     embeds: [embed],
@@ -110,7 +117,6 @@ export async function handleWelcomeButton(interaction) {
   const guildId = guild.id;
   const id = interaction.customId;
 
-  // solo chi ha ManageGuild
   if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
     return interaction.reply({
       content: '❌ Ti mancano i permessi per configurare il welcome (Serve Manage Server).',
@@ -152,35 +158,29 @@ export async function handleWelcomeButton(interaction) {
     return interaction.showModal(modal);
   }
 
-  // Per gli altri bottoni rispondiamo ephemerale
+  // Aggiorna stato
   if (id === 'NIMBUS_WEL_ENABLE') {
     w.enabled = true;
-    // se non c’è ancora un canale, imposta quello dove stai eseguendo il comando
-    if (!w.channelId) {
-      w.channelId = interaction.channelId;
-    }
-
-    return interaction.reply({
-      content: `✅ Sistema welcome **attivato**. Canale corrente: <#${w.channelId}>`,
-      ephemeral: true,
-    });
+    if (!w.channelId) w.channelId = interaction.channelId;
   }
 
   if (id === 'NIMBUS_WEL_DISABLE') {
     w.enabled = false;
-    return interaction.reply({
-      content: '✅ Sistema welcome **disattivato**.',
-      ephemeral: true,
-    });
   }
 
   if (id === 'NIMBUS_WEL_TOGGLE_PING') {
     w.pingUser = !w.pingUser;
-    return interaction.reply({
-      content: `✅ Ping utente all’ingresso: \`${w.pingUser ? 'attivo' : 'disattivato'}\`.`,
-      ephemeral: true,
-    });
   }
+
+  // Aggiorna il pannello (stesso embed, stessi bottoni)
+  const newEmbed = buildWelcomeEmbed(guild, w);
+  const row = buildWelcomeRow();
+
+  // update = modifica il messaggio ephemerale originale
+  return interaction.update({
+    embeds: [newEmbed],
+    components: [row],
+  });
 }
 
 // ===== Handler modale welcome =====
@@ -188,7 +188,8 @@ export async function handleWelcomeModal(interaction) {
   if (!interaction.inGuild()) return;
   if (interaction.customId !== 'NIMBUS_WEL_MODAL_MSG') return;
 
-  const guildId = interaction.guild.id;
+  const guild = interaction.guild;
+  const guildId = guild.id;
 
   ensureGuild(guildId);
   const settings = getGuildSettings(guildId);
@@ -208,8 +209,12 @@ export async function handleWelcomeModal(interaction) {
 
   w.message = message;
 
-  return interaction.reply({
-    content: '✅ Messaggio di benvenuto aggiornato.',
-    ephemeral: true,
+  const newEmbed = buildWelcomeEmbed(guild, w);
+  const row = buildWelcomeRow();
+
+  // qui usiamo update perché la modale "continua" l’interazione del pannello
+  return interaction.update({
+    embeds: [newEmbed],
+    components: [row],
   });
 }
