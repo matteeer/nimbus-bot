@@ -1,8 +1,14 @@
 // commands/welcome.js
 import {
   SlashCommandBuilder,
-  PermissionFlagsBits,
   EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  PermissionFlagsBits,
 } from 'discord.js';
 
 import { ensureGuild, getGuildSettings } from '../utils/settings.js';
@@ -14,31 +20,8 @@ export const data = new SlashCommandBuilder()
   .setDMPermission(false)
   .addSubcommand(sub =>
     sub
-      .setName('config')
-      .setDescription('Imposta il canale e le opzioni di benvenuto.')
-      .addChannelOption(opt =>
-        opt
-          .setName('canale')
-          .setDescription('Canale in cui inviare il messaggio di benvenuto')
-          .setRequired(true),
-      )
-      .addBooleanOption(opt =>
-        opt
-          .setName('ping_utente')
-          .setDescription('Menzionare direttamente l’utente? (default: sì)')
-          .setRequired(false),
-      )
-      .addBooleanOption(opt =>
-        opt
-          .setName('embed')
-          .setDescription('Usare un embed invece del messaggio semplice? (default: sì)')
-          .setRequired(false),
-      ),
-  )
-  .addSubcommand(sub =>
-    sub
-      .setName('preview')
-      .setDescription('Mostra un esempio di messaggio di benvenuto.'),
+      .setName('panel')
+      .setDescription('Mostra il pannello di configurazione del sistema welcome.'),
   );
 
 export async function execute(interaction) {
@@ -49,91 +32,184 @@ export async function execute(interaction) {
     });
   }
 
-  const sub = interaction.options.getSubcommand();
+  const guild = interaction.guild;
+  const guildId = guild.id;
+
+  ensureGuild(guildId);
+  const settings = getGuildSettings(guildId);
+
+  if (!settings.welcome) {
+    settings.welcome = {
+      enabled: false,
+      channelId: null,
+      pingUser: true,
+      message: null,
+      embed: { enabled: false },
+    };
+  }
+
+  const w = settings.welcome;
+
+  const channelLabel = w.channelId
+    ? (guild.channels.cache.get(w.channelId) || `#${w.channelId}`)
+    : 'Nessun canale configurato';
+
+  const embed = new EmbedBuilder()
+    .setColor(0x5865f2)
+    .setTitle('Welcome • Configurazione')
+    .setDescription(
+      [
+        `**Stato:** \`${w.enabled ? 'Attivo' : 'Disattivato'}\``,
+        `**Canale:** ${channelLabel}`,
+        `**Ping utente:** \`${w.pingUser ? 'Sì' : 'No'}\``,
+        '',
+        '**Messaggio attuale:**',
+        w.message
+          ? `\`\`\`\n${w.message.slice(0, 300)}\n\`\`\``
+          : '_Nessun messaggio personalizzato. Verrà usato il default._',
+        '',
+        'Variabili disponibili nel testo:',
+        '`{user}` → menzione / nome utente',
+        '`{server}` → nome del server',
+      ].join('\n'),
+    )
+    .setFooter({ text: 'Nimbus • /welcome panel' })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('NIMBUS_WEL_ENABLE')
+      .setLabel('Attiva welcome')
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId('NIMBUS_WEL_DISABLE')
+      .setLabel('Disattiva welcome')
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId('NIMBUS_WEL_TOGGLE_PING')
+      .setLabel('Ping utente ON/OFF')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('NIMBUS_WEL_SETMSG')
+      .setLabel('Modifica messaggio')
+      .setStyle(ButtonStyle.Primary),
+  );
+
+  return interaction.reply({
+    embeds: [embed],
+    components: [row],
+    ephemeral: true,
+  });
+}
+
+// ===== Handler bottoni welcome =====
+export async function handleWelcomeButton(interaction) {
+  if (!interaction.inGuild()) return;
+
+  const guild = interaction.guild;
+  const guildId = guild.id;
+  const id = interaction.customId;
+
+  // solo chi ha ManageGuild
+  if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+    return interaction.reply({
+      content: '❌ Ti mancano i permessi per configurare il welcome (Serve Manage Server).',
+      ephemeral: true,
+    });
+  }
+
+  ensureGuild(guildId);
+  const settings = getGuildSettings(guildId);
+
+  if (!settings.welcome) {
+    settings.welcome = {
+      enabled: false,
+      channelId: null,
+      pingUser: true,
+      message: null,
+      embed: { enabled: false },
+    };
+  }
+
+  const w = settings.welcome;
+
+  // Modale per il messaggio
+  if (id === 'NIMBUS_WEL_SETMSG') {
+    const modal = new ModalBuilder()
+      .setCustomId('NIMBUS_WEL_MODAL_MSG')
+      .setTitle('Messaggio di benvenuto');
+
+    const input = new TextInputBuilder()
+      .setCustomId('welcome_message')
+      .setLabel('Testo del messaggio')
+      .setStyle(TextInputStyle.Paragraph)
+      .setRequired(true)
+      .setPlaceholder('Es: Benvenuto {user} in {server}!');
+
+    const row = new ActionRowBuilder().addComponents(input);
+    modal.addComponents(row);
+
+    return interaction.showModal(modal);
+  }
+
+  // Per gli altri bottoni rispondiamo ephemerale
+  if (id === 'NIMBUS_WEL_ENABLE') {
+    w.enabled = true;
+    // se non c’è ancora un canale, imposta quello dove stai eseguendo il comando
+    if (!w.channelId) {
+      w.channelId = interaction.channelId;
+    }
+
+    return interaction.reply({
+      content: `✅ Sistema welcome **attivato**. Canale corrente: <#${w.channelId}>`,
+      ephemeral: true,
+    });
+  }
+
+  if (id === 'NIMBUS_WEL_DISABLE') {
+    w.enabled = false;
+    return interaction.reply({
+      content: '✅ Sistema welcome **disattivato**.',
+      ephemeral: true,
+    });
+  }
+
+  if (id === 'NIMBUS_WEL_TOGGLE_PING') {
+    w.pingUser = !w.pingUser;
+    return interaction.reply({
+      content: `✅ Ping utente all’ingresso: \`${w.pingUser ? 'attivo' : 'disattivato'}\`.`,
+      ephemeral: true,
+    });
+  }
+}
+
+// ===== Handler modale welcome =====
+export async function handleWelcomeModal(interaction) {
+  if (!interaction.inGuild()) return;
+  if (interaction.customId !== 'NIMBUS_WEL_MODAL_MSG') return;
+
   const guildId = interaction.guild.id;
 
   ensureGuild(guildId);
   const settings = getGuildSettings(guildId);
-  if (!settings.welcome) settings.welcome = {};
 
-  if (sub === 'config') {
-    const channel = interaction.options.getChannel('canale', true);
-    const pingUser = interaction.options.getBoolean('ping_utente') ?? true;
-    const useEmbed = interaction.options.getBoolean('embed') ?? true;
-
-    if (!channel.isTextBased()) {
-      return interaction.reply({
-        content: '❌ Il canale deve essere testuale.',
-        ephemeral: true,
-      });
-    }
-
-    settings.welcome.enabled = true;
-    settings.welcome.channelId = channel.id;
-    settings.welcome.pingUser = pingUser;
-    settings.welcome.embed = useEmbed;
-
-    const embed = new EmbedBuilder()
-      .setColor(0x57f287)
-      .setTitle('Welcome configurato')
-      .setDescription(
-        [
-          `• Canale: ${channel}`,
-          `• Ping utente: \`${pingUser ? 'sì' : 'no'}\``,
-          `• Embed: \`${useEmbed ? 'sì' : 'no'}\``,
-        ].join('\n'),
-      )
-      .setTimestamp();
-
-    return interaction.reply({
-      embeds: [embed],
-      ephemeral: true,
-    });
+  if (!settings.welcome) {
+    settings.welcome = {
+      enabled: false,
+      channelId: null,
+      pingUser: true,
+      message: null,
+      embed: { enabled: false },
+    };
   }
 
-  if (sub === 'preview') {
-    const w = settings.welcome;
-    if (!w || !w.enabled || !w.channelId) {
-      return interaction.reply({
-        content: '❌ Nessuna configurazione welcome trovata. Usa `/welcome config` prima.',
-        ephemeral: true,
-      });
-    }
+  const w = settings.welcome;
+  const message = interaction.fields.getTextInputValue('welcome_message');
 
-    const channel = interaction.guild.channels.cache.get(w.channelId);
-    if (!channel || !channel.isTextBased()) {
-      return interaction.reply({
-        content: '❌ Il canale configurato non esiste più o non è testuale.',
-        ephemeral: true,
-      });
-    }
+  w.message = message;
 
-    const fakeUser = interaction.user;
-    const mention = w.pingUser ? fakeUser.toString() : `**${fakeUser.tag}**`;
-
-    if (w.embed) {
-      const embed = new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle('Benvenuto!')
-        .setDescription(`${mention} è entrato in **${interaction.guild.name}** 🎉`)
-        .setThumbnail(fakeUser.displayAvatarURL({ size: 256 }))
-        .setTimestamp();
-
-      await channel.send({
-        content: w.pingUser ? mention : null,
-        embeds: [embed],
-        allowedMentions: w.pingUser ? { users: [fakeUser.id] } : { parse: [] },
-      });
-    } else {
-      await channel.send({
-        content: `Benvenuto ${mention} in **${interaction.guild.name}** 🎉`,
-        allowedMentions: w.pingUser ? { users: [fakeUser.id] } : { parse: [] },
-      });
-    }
-
-    return interaction.reply({
-      content: `✅ Anteprima inviata in ${channel}.`,
-      ephemeral: true,
-    });
-  }
+  return interaction.reply({
+    content: '✅ Messaggio di benvenuto aggiornato.',
+    ephemeral: true,
+  });
 }

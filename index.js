@@ -18,12 +18,7 @@ import { nEmbed } from './utils/ui.js';
 // Handlers componenti
 import { handleHelpButton } from './commands/help.js';
 import { handleTicketButton, handleTicketModal } from './commands/ticket.js';
-import {
-  handleWelcomeButton,
-  handleWelcomeModal,
-  handleWelcomeSelect,
-  handleWelcomeThumbUrlModal
-} from './commands/welcome.js';
+import { handleWelcomeButton, handleWelcomeModal } from './commands/welcome.js';
 import { handleLockButton } from './commands/lock.js';
 import { handleAutomodButtons } from './commands/setupautomod.js';
 
@@ -241,18 +236,13 @@ if (interaction.isButton()) {
   }
 
   // Modali
-  if (interaction.isModalSubmit()) {
-    try {
-      const id = interaction.customId;
+ if (interaction.isModalSubmit()) {
+  try {
+    const id = interaction.customId;
 
-      // Welcome: URL thumbnail custom (modale dedicata)
-      if (id === 'NIMBUS_WEL_MODAL_THUMBURL') {
-        return await handleWelcomeThumbUrlModal(interaction);
-      }
-      // Welcome: altre modali (testo, embed, image, footer)
-      if (id.startsWith('NIMBUS_WEL_MODAL_')) {
-        return await handleWelcomeModal(interaction);
-      }
+    if (id.startsWith('NIMBUS_WEL_MODAL_')) {
+      return await handleWelcomeModal(interaction);
+    }
       // Ticket modali
       if (
         id.startsWith('NIMBUS_TICKET_MODAL_') ||
