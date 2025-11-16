@@ -196,7 +196,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
     return;
   }
-  
+
 // Bottoni
 if (interaction.isButton()) {
   try {
@@ -271,62 +271,48 @@ if (interaction.isButton()) {
   }
 });
 
-// ===== Welcome on join (mention nel content, MAI nell’embed) =====
-client.on('guildMemberAdd', async (member) => {
+// ===== Welcome on join (unico messaggio) =====
+client.on(Events.GuildMemberAdd, async (member) => {
   try {
     ensureGuild(member.guild.id);
-    const s = getGuildSettings(member.guild.id);
-    const w = s.welcome ?? {};
-    if (!w.enabled) return;
+    const settings = getGuildSettings(member.guild.id);
+    const w = settings.welcome;
 
-    // autorole (se impostato)
-    if (w.autoroleId) {
-      const role =
-        member.guild.roles.cache.get(w.autoroleId) ||
-        await member.guild.roles.fetch(w.autoroleId).catch(() => null);
-      if (role) member.roles.add(role).catch(() => {});
-    }
+    if (!w || !w.enabled || !w.channelId) return;
 
-    // canale di benvenuto
-    const channelId = w.channelId ?? s.welcomeChannelId ?? null;
-    const ch = channelId
-      ? (member.guild.channels.cache.get(channelId) ??
-         await member.guild.channels.fetch(channelId).catch(() => null))
-      : null;
+    const ch =
+      member.guild.channels.cache.get(w.channelId) ??
+      (await member.guild.channels.fetch(w.channelId).catch(() => null));
+
     if (!ch || !ch.isTextBased()) return;
 
     const pingUser = w.pingUser ?? true;
-    const mention = pingUser ? member.toString() : `**@${member.user.username}**`;
+    const useEmbed = w.embed ?? true;
+
+    const mention = pingUser ? member.toString() : `**${member.user.tag}**`;
     const allowedMentions = pingUser ? { users: [member.id] } : { parse: [] };
 
-    if (w.embed?.enabled) {
-      const title = (w.embed.title || 'Benvenuto {user}!')
-        .replaceAll('{user}', `**@${member.user.username}**`)
-        .replaceAll('{server}', member.guild.name);
+    if (useEmbed) {
+      const embed = new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle('Benvenuto!')
+        .setDescription(`${mention} è entrato in **${member.guild.name}** 🎉`)
+        .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
+        .setTimestamp();
 
-      const description = (w.embed.description || 'Sei entrato in **{server}** 🎉')
-        .replaceAll('{user}', `**@${member.user.username}**`)
-        .replaceAll('{server}', member.guild.name);
-
-      const embed = nEmbed(member.client, { title, description, color: w.embed.color ?? undefined });
-
-      let thumb = null;
-      if (w.embed.thumbnail === 'user') thumb = member.user.displayAvatarURL({ size: 256 });
-      else if (w.embed.thumbnail === 'server') thumb = member.guild.iconURL({ size: 256 });
-      else if (w.embed.thumbnail === 'custom') thumb = w.embed.customThumbUrl;
-      if (thumb) embed.setThumbnail(thumb);
-      if (w.embed.imageUrl) embed.setImage(w.embed.imageUrl);
-      if (w.embed.footer) embed.setFooter({ text: w.embed.footer });
-
-      await ch.send({ content: mention, embeds: [embed], allowedMentions }).catch(()=>{});
+      await ch.send({
+        content: pingUser ? mention : null,
+        embeds: [embed],
+        allowedMentions,
+      });
     } else {
-      const text = (w.message || 'Benvenuto {user} in **{server}**! 🎉')
-        .replaceAll('{user}', mention)
-        .replaceAll('{server}', member.guild.name);
-      await ch.send({ content: text, allowedMentions }).catch(()=>{});
+      await ch.send({
+        content: `Benvenuto ${mention} in **${member.guild.name}** 🎉`,
+        allowedMentions,
+      });
     }
   } catch (e) {
-    console.error('welcome error:', e);
+    console.error('welcome join error:', e);
   }
 });
 

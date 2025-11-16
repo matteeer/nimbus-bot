@@ -3,127 +3,44 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
 } from 'discord.js';
 
 import { ensureGuild, getGuildSettings } from '../utils/settings.js';
 
-// =======================
-//  Default config
-// =======================
-function getDefaultWelcome() {
-  return {
-    enabled: false,
-    channelId: null,
-    pingUser: true,
-    autoroleId: null,
-    mode: 'embed', // 'embed' | 'text'
-    message: 'Benvenuto {user} in **{server}**! 🎉',
-    embed: {
-      enabled: true,
-      title: 'Benvenuto {user}!',
-      description: 'Sei entrato in **{server}** 🎉',
-      color: 0x5865f2,
-      thumbnail: 'user', // 'user' | 'server' | 'custom' | null
-      customThumbUrl: null,
-      imageUrl: null,
-      footer: 'Benvenuto nel server!',
-    },
-  };
-}
-
-// =======================
-//  Slash command /welcome
-// =======================
 export const data = new SlashCommandBuilder()
   .setName('welcome')
   .setDescription('Configura i messaggi di benvenuto.')
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-  .setDMPermission(false);
-
-// =======================
-//  UI: pannello embed + bottoni
-// =======================
-function buildWelcomePanelEmbed(guild, settings) {
-  const s = settings || {};
-  const w = s.welcome ?? getDefaultWelcome();
-
-  const channelText = w.channelId ? `<#${w.channelId}>` : 'Non impostato';
-  const autoroleText = w.autoroleId ? `<@&${w.autoroleId}>` : 'Nessun ruolo automatico';
-
-  const modeIsEmbed = w.embed?.enabled ?? (w.mode !== 'text');
-  const modeText = modeIsEmbed ? 'Embed' : 'Messaggio semplice';
-  const statusText = w.enabled ? 'Attivo' : 'Disattivo';
-
-  const embed = new EmbedBuilder()
-    .setColor(0x5865f2)
-    .setTitle('Welcome')
-    .setDescription(
-      [
-        'Configura come Nimbus accoglie i nuovi utenti nel server.',
-        '',
-        `**Stato:** \`${statusText}\``,
-        `**Canale:** ${channelText}`,
-        `**Ruolo automatico:** ${autoroleText}`,
-        `**Modalità:** \`${modeText}\``,
-        '',
-        '**Placeholder disponibili:**',
-        '`{user}` → menzione o nome utente',
-        '`{server}` → nome del server',
-      ].join('\n'),
-    )
-    .setFooter({
-      text: `Server: ${guild.name}`,
-      iconURL: guild.iconURL({ size: 128 }) ?? undefined,
-    })
-    .setTimestamp();
-
-  return embed;
-}
-
-function buildWelcomePanelRow(settings) {
-  const s = settings || {};
-  const w = s.welcome ?? getDefaultWelcome();
-
-  const enabled = !!w.enabled;
-  const modeIsEmbed = w.embed?.enabled ?? (w.mode !== 'text');
-
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('NIMBUS_WEL_TOGGLE')
-      .setLabel(enabled ? 'Disabilita' : 'Abilita')
-      .setStyle(enabled ? ButtonStyle.Danger : ButtonStyle.Success),
-
-    new ButtonBuilder()
-      .setCustomId('NIMBUS_WEL_CH')
-      .setLabel('Imposta canale')
-      .setStyle(ButtonStyle.Secondary),
-
-    new ButtonBuilder()
-      .setCustomId('NIMBUS_WEL_TEXT')
-      .setLabel('Configura testo')
-      .setStyle(ButtonStyle.Secondary),
-
-    new ButtonBuilder()
-      .setCustomId('NIMBUS_WEL_AUTOROLE')
-      .setLabel('Ruolo automatico')
-      .setStyle(ButtonStyle.Secondary),
-
-    new ButtonBuilder()
-      .setCustomId('NIMBUS_WEL_MODE')
-      .setLabel(modeIsEmbed ? 'Passa a messaggio' : 'Passa a embed')
-      .setStyle(ButtonStyle.Secondary),
+  .setDMPermission(false)
+  .addSubcommand(sub =>
+    sub
+      .setName('config')
+      .setDescription('Imposta il canale e le opzioni di benvenuto.')
+      .addChannelOption(opt =>
+        opt
+          .setName('canale')
+          .setDescription('Canale in cui inviare il messaggio di benvenuto')
+          .setRequired(true),
+      )
+      .addBooleanOption(opt =>
+        opt
+          .setName('ping_utente')
+          .setDescription('Menzionare direttamente l’utente? (default: sì)')
+          .setRequired(false),
+      )
+      .addBooleanOption(opt =>
+        opt
+          .setName('embed')
+          .setDescription('Usare un embed invece del messaggio semplice? (default: sì)')
+          .setRequired(false),
+      ),
+  )
+  .addSubcommand(sub =>
+    sub
+      .setName('preview')
+      .setDescription('Mostra un esempio di messaggio di benvenuto.'),
   );
-}
 
-// =======================
-//  /welcome → mostra pannello
-// =======================
 export async function execute(interaction) {
   if (!interaction.inGuild()) {
     return interaction.reply({
@@ -132,244 +49,91 @@ export async function execute(interaction) {
     });
   }
 
+  const sub = interaction.options.getSubcommand();
   const guildId = interaction.guild.id;
-  ensureGuild(guildId);
 
-  const settings = getGuildSettings(guildId);
-  if (!settings.welcome) {
-    settings.welcome = getDefaultWelcome();
-  }
-
-  const embed = buildWelcomePanelEmbed(interaction.guild, settings);
-  const row = buildWelcomePanelRow(settings);
-
-  await interaction.reply({
-    embeds: [embed],
-    components: [row],
-  });
-}
-
-// =======================
-//  Handler BOTTONI (WELCOME)
-// =======================
-export async function handleWelcomeButton(interaction) {
-  if (!interaction.inGuild()) return;
-
-  const guildId = interaction.guild.id;
   ensureGuild(guildId);
   const settings = getGuildSettings(guildId);
-  if (!settings.welcome) settings.welcome = getDefaultWelcome();
-  const w = settings.welcome;
-  const id = interaction.customId;
+  if (!settings.welcome) settings.welcome = {};
 
-  // ON/OFF
-  if (id === 'NIMBUS_WEL_TOGGLE') {
-    w.enabled = !w.enabled;
+  if (sub === 'config') {
+    const channel = interaction.options.getChannel('canale', true);
+    const pingUser = interaction.options.getBoolean('ping_utente') ?? true;
+    const useEmbed = interaction.options.getBoolean('embed') ?? true;
 
-    const embed = buildWelcomePanelEmbed(interaction.guild, settings);
-    const row = buildWelcomePanelRow(settings);
-    return interaction.update({ embeds: [embed], components: [row] });
-  }
-
-  // Imposta canale = canale corrente
-  if (id === 'NIMBUS_WEL_CH') {
-    w.channelId = interaction.channel.id;
-
-    const embed = buildWelcomePanelEmbed(interaction.guild, settings);
-    const row = buildWelcomePanelRow(settings);
-    return interaction.update({ embeds: [embed], components: [row] });
-  }
-
-  // Cambia modalità embed / text
-  if (id === 'NIMBUS_WEL_MODE') {
-    const modeIsEmbed = w.embed?.enabled ?? (w.mode !== 'text');
-    if (!w.embed) w.embed = getDefaultWelcome().embed;
-
-    if (modeIsEmbed) {
-      w.embed.enabled = false;
-      w.mode = 'text';
-    } else {
-      w.embed.enabled = true;
-      w.mode = 'embed';
+    if (!channel.isTextBased()) {
+      return interaction.reply({
+        content: '❌ Il canale deve essere testuale.',
+        ephemeral: true,
+      });
     }
 
-    const embed = buildWelcomePanelEmbed(interaction.guild, settings);
-    const row = buildWelcomePanelRow(settings);
-    return interaction.update({ embeds: [embed], components: [row] });
-  }
+    settings.welcome.enabled = true;
+    settings.welcome.channelId = channel.id;
+    settings.welcome.pingUser = pingUser;
+    settings.welcome.embed = useEmbed;
 
-  // Config testo (apre modale)
-  if (id === 'NIMBUS_WEL_TEXT') {
-    const modeIsEmbed = w.embed?.enabled ?? (w.mode !== 'text');
-    const defaults = getDefaultWelcome();
-
-    const currentTitle = modeIsEmbed
-      ? (w.embed?.title ?? defaults.embed.title)
-      : 'Messaggio semplice';
-
-    const currentBody = modeIsEmbed
-      ? (w.embed?.description ?? defaults.embed.description)
-      : (w.message ?? defaults.message);
-
-    const modal = new ModalBuilder()
-      .setCustomId('NIMBUS_WEL_MODAL_TEXT')
-      .setTitle('Configura welcome');
-
-    const titleInput = new TextInputBuilder()
-      .setCustomId('wel_title')
-      .setLabel(modeIsEmbed ? 'Titolo embed (opzionale)' : 'Titolo (solo descrittivo)')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(false)
-      .setValue(currentTitle.slice(0, 100));
-
-    const bodyInput = new TextInputBuilder()
-      .setCustomId('wel_body')
-      .setLabel('Testo di benvenuto (usa {user} e {server})')
-      .setStyle(TextInputStyle.Paragraph)
-      .setRequired(false)
-      .setValue(currentBody.slice(0, 1900));
-
-    modal.addComponents(
-      new ActionRowBuilder().addComponents(titleInput),
-      new ActionRowBuilder().addComponents(bodyInput),
-    );
-
-    return interaction.showModal(modal);
-  }
-
-  // Autorole (apre modale)
-  if (id === 'NIMBUS_WEL_AUTOROLE') {
-    const currentRoleText = w.autoroleId ? `<@&${w.autoroleId}>` : 'nessuno';
-
-    const modal = new ModalBuilder()
-      .setCustomId('NIMBUS_WEL_MODAL_AUTOROLE')
-      .setTitle('Ruolo automatico');
-
-    const roleInput = new TextInputBuilder()
-      .setCustomId('wel_role')
-      .setLabel('ID ruolo / @menzione / "none"')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(false)
-      .setValue(currentRoleText);
-
-    modal.addComponents(
-      new ActionRowBuilder().addComponents(roleInput),
-    );
-
-    return interaction.showModal(modal);
-  }
-}
-
-// =======================
-//  Handler MODALI (WELCOME)
-// =======================
-export async function handleWelcomeModal(interaction) {
-  if (!interaction.inGuild()) return;
-
-  const id = interaction.customId;
-  const guildId = interaction.guild.id;
-  ensureGuild(guildId);
-  const settings = getGuildSettings(guildId);
-  if (!settings.welcome) settings.welcome = getDefaultWelcome();
-  const w = settings.welcome;
-
-  // Modale testo
-  if (id === 'NIMBUS_WEL_MODAL_TEXT') {
-    const modeIsEmbed = w.embed?.enabled ?? (w.mode !== 'text');
-    const defaults = getDefaultWelcome();
-
-    const title = interaction.fields.getTextInputValue('wel_title') || null;
-    const body = interaction.fields.getTextInputValue('wel_body') || null;
-
-    if (modeIsEmbed) {
-      if (!w.embed) w.embed = defaults.embed;
-      if (title) w.embed.title = title;
-      if (body) w.embed.description = body;
-      w.embed.enabled = true;
-      w.mode = 'embed';
-    } else {
-      w.message = body || defaults.message;
-      w.mode = 'text';
-      if (w.embed) w.embed.enabled = false;
-    }
-
-    if (interaction.message) {
-      const panelEmbed = buildWelcomePanelEmbed(interaction.guild, settings);
-      const row = buildWelcomePanelRow(settings);
-      await interaction.message.edit({ embeds: [panelEmbed], components: [row] }).catch(() => {});
-    }
+    const embed = new EmbedBuilder()
+      .setColor(0x57f287)
+      .setTitle('Welcome configurato')
+      .setDescription(
+        [
+          `• Canale: ${channel}`,
+          `• Ping utente: \`${pingUser ? 'sì' : 'no'}\``,
+          `• Embed: \`${useEmbed ? 'sì' : 'no'}\``,
+        ].join('\n'),
+      )
+      .setTimestamp();
 
     return interaction.reply({
-      content: '✅ Messaggio di benvenuto aggiornato.',
+      embeds: [embed],
       ephemeral: true,
     });
   }
 
-  // Modale autorole
-  if (id === 'NIMBUS_WEL_MODAL_AUTOROLE') {
-    const raw = interaction.fields.getTextInputValue('wel_role').trim();
-
-    if (!raw || raw.toLowerCase() === 'none' || raw.toLowerCase() === 'nessuno') {
-      w.autoroleId = null;
-
-      if (interaction.message) {
-        const panelEmbed = buildWelcomePanelEmbed(interaction.guild, settings);
-        const row = buildWelcomePanelRow(settings);
-        await interaction.message.edit({ embeds: [panelEmbed], components: [row] }).catch(() => {});
-      }
-
+  if (sub === 'preview') {
+    const w = settings.welcome;
+    if (!w || !w.enabled || !w.channelId) {
       return interaction.reply({
-        content: '✅ Ruolo automatico disattivato.',
+        content: '❌ Nessuna configurazione welcome trovata. Usa `/welcome config` prima.',
         ephemeral: true,
       });
     }
 
-    let roleId = null;
-    const mentionMatch = raw.match(/^<@&(\d+)>$/);
-    if (mentionMatch) roleId = mentionMatch[1];
-    else if (/^\d+$/.test(raw)) roleId = raw;
-
-    if (!roleId) {
+    const channel = interaction.guild.channels.cache.get(w.channelId);
+    if (!channel || !channel.isTextBased()) {
       return interaction.reply({
-        content: '❌ Valore non valido. Usa un ID ruolo, una menzione o "none".',
+        content: '❌ Il canale configurato non esiste più o non è testuale.',
         ephemeral: true,
       });
     }
 
-    const role =
-      interaction.guild.roles.cache.get(roleId) ||
-      (await interaction.guild.roles.fetch(roleId).catch(() => null));
+    const fakeUser = interaction.user;
+    const mention = w.pingUser ? fakeUser.toString() : `**${fakeUser.tag}**`;
 
-    if (!role) {
-      return interaction.reply({
-        content: '❌ Ruolo non trovato. Controlla l’ID o la menzione.',
-        ephemeral: true,
+    if (w.embed) {
+      const embed = new EmbedBuilder()
+        .setColor(0x5865f2)
+        .setTitle('Benvenuto!')
+        .setDescription(`${mention} è entrato in **${interaction.guild.name}** 🎉`)
+        .setThumbnail(fakeUser.displayAvatarURL({ size: 256 }))
+        .setTimestamp();
+
+      await channel.send({
+        content: w.pingUser ? mention : null,
+        embeds: [embed],
+        allowedMentions: w.pingUser ? { users: [fakeUser.id] } : { parse: [] },
       });
-    }
-
-    w.autoroleId = role.id;
-
-    if (interaction.message) {
-      const panelEmbed = buildWelcomePanelEmbed(interaction.guild, settings);
-      const row = buildWelcomePanelRow(settings);
-      await interaction.message.edit({ embeds: [panelEmbed], components: [row] }).catch(() => {});
+    } else {
+      await channel.send({
+        content: `Benvenuto ${mention} in **${interaction.guild.name}** 🎉`,
+        allowedMentions: w.pingUser ? { users: [fakeUser.id] } : { parse: [] },
+      });
     }
 
     return interaction.reply({
-      content: `✅ Ruolo automatico impostato su ${role}.`,
+      content: `✅ Anteprima inviata in ${channel}.`,
       ephemeral: true,
     });
   }
 }
-
-// =======================
-//  Export “dummy” per compatibilità
-// =======================
-export async function handleWelcomeSelect() {
-  // non usato nella nuova versione
-}
-
-export async function handleWelcomeThumbUrlModal() {
-  // non usato nella nuova versione
-}
-

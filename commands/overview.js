@@ -1,17 +1,17 @@
 // commands/overview.js
-import {
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  EmbedBuilder,
-} from 'discord.js';
-
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { ensureGuild, getGuildSettings } from '../utils/settings.js';
 
 export const data = new SlashCommandBuilder()
   .setName('overview')
   .setDescription('Mostra una panoramica della configurazione di Nimbus in questo server.')
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
   .setDMPermission(false);
+
+function formatChannel(guild, id) {
+  if (!id) return '`Nessuno`';
+  const ch = guild.channels.cache.get(id);
+  return ch ? `${ch}` : `\`#${id}\``;
+}
 
 export async function execute(interaction) {
   if (!interaction.inGuild()) {
@@ -27,51 +27,53 @@ export async function execute(interaction) {
   ensureGuild(guildId);
   const settings = getGuildSettings(guildId);
 
-  const w = settings.welcome ?? {};
-  const a = settings.automod ?? {};
-  const t = settings.tickets ?? null; // se in futuro hai una config tickets
+  const logChannel = settings.logChannelId ?? null;
+  const ticketsChannel = settings.channels?.ticketsChannelId ?? null;
+  const reportsChannel = settings.channels?.reportsChannelId ?? null;
 
-  const welcomeStatus = w.enabled ? 'Attivo' : 'Disattivo';
-  const welcomeChannel = w.channelId ? `<#${w.channelId}>` : 'Non impostato';
-  const welcomeRole = w.autoroleId ? `<@&${w.autoroleId}>` : 'Nessun ruolo automatico';
-  const modeIsEmbed = w.embed?.enabled ?? (w.mode !== 'text');
-  const welcomeMode = modeIsEmbed ? 'Embed' : 'Messaggio semplice';
+  const welcome = settings.welcome ?? {};
+  const welcomeEnabled = !!welcome.enabled;
+  const welcomeChannel = welcome.channelId ?? null;
 
-  const automodStatus = a.enabled ? 'Attivo' : 'Disattivo';
-
-  const ticketsStatus = t ? 'Configurazione presente' : 'Non configurati';
+  const automod = settings.automod ?? {};
+  const automodEnabled = !!automod.enabled;
 
   const embed = new EmbedBuilder()
     .setColor(0x5865f2)
-    .setTitle('Panoramica Nimbus')
-    .setDescription('Stato delle principali funzioni di Nimbus in questo server.')
+    .setTitle('Configurazione Nimbus')
+    .setThumbnail(guild.iconURL({ size: 256 }) ?? null)
     .addFields(
       {
-        name: 'Welcome',
+        name: '📌 Log',
         value: [
-          `• Stato: \`${welcomeStatus}\``,
-          `• Canale: ${welcomeChannel}`,
-          `• Ruolo automatico: ${welcomeRole}`,
-          `• Modalità: \`${welcomeMode}\``,
+          `**Canale log:** ${formatChannel(guild, logChannel)}`,
         ].join('\n'),
         inline: false,
       },
       {
-        name: 'AutoMod',
-        value: `• Stato: \`${automodStatus}\``,
+        name: '🎫 Servizi',
+        value: [
+          `**Tickets:** ${formatChannel(guild, ticketsChannel)}`,
+          `**Reports:** ${formatChannel(guild, reportsChannel)}`,
+        ].join('\n'),
         inline: false,
       },
       {
-        name: 'Tickets',
-        value: `• Stato: \`${ticketsStatus}\``,
+        name: '👋 Welcome',
+        value: [
+          `**Stato:** \`${welcomeEnabled ? 'Attivo' : 'Disattivato'}\``,
+          `**Canale:** ${formatChannel(guild, welcomeChannel)}`,
+        ].join('\n'),
+        inline: false,
+      },
+      {
+        name: '🛡️ AutoMod',
+        value: `**Stato:** \`${automodEnabled ? 'Attivo' : 'Disattivato'}\``,
         inline: false,
       },
     )
-    .setFooter({
-      text: `Server: ${guild.name}`,
-      iconURL: guild.iconURL({ size: 128 }) ?? undefined,
-    })
+    .setFooter({ text: 'Nimbus • /overview' })
     .setTimestamp();
 
-  await interaction.reply({ embeds: [embed] });
+  return interaction.reply({ embeds: [embed], ephemeral: false });
 }
