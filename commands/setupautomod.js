@@ -11,7 +11,7 @@ import {
 import { ensureGuild, getGuildSettings } from '../utils/settings.js';
 
 export const data = new SlashCommandBuilder()
-  .setName('setup_automod')
+  .setName('setupautomod')
   .setDescription('Configura il sistema AutoMod di Nimbus.')
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
   .setDMPermission(false);
