@@ -60,8 +60,11 @@ function buildHelpEmbed(category, client) {
         .setDescription(
           [
             '**/setup automod** – configura il sistema AutoMod (on/off).',
+            '**/setup channels** - imposta i canali di servizio (tickets/report user)',
+            '**/setup log** - imposta il canale dei log di moderazione/sistema',
+            '**/setup reset - resetta la configurazione base di Nimbus (log e canali di servizio)', 
             '**/welcome** – apre il pannello per configurare i messaggi di benvenuto.',
-            '**/ticket** – (se lo hai) imposta il pannello ticket.'
+            '**/ticket panel** – imposta il pannello ticket.'
           ].join('\n')
         );
 
@@ -82,8 +85,10 @@ function buildHelpEmbed(category, client) {
         .setTitle('Help • Tickets')
         .setDescription(
           [
-            '**/ticket** – invia il pannello per aprire i ticket.',
-            'Gli utenti potranno aprire un ticket premendo il pulsante nel pannello.'
+            '**/ticket panel** – invia il pannello per aprire i ticket.',
+            '**/icket close** - chiude il ticket corrente', 
+            '',
+            '*Gli utenti potranno aprire un ticket premendo il pulsante nel pannello.*'
           ].join('\n')
         );
 

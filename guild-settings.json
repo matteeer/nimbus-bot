@@ -328,25 +328,15 @@
     }
   },
   "1437894501585784934": {
-    "modLogChannelId": "1438179619089158257",
-    "ticketsChannelId": "1437926081201180712",
+    "modLogChannelId": null,
+    "ticketsChannelId": null,
     "bugChannelId": null,
-    "userReportsChannelId": "1438072226774781952",
+    "userReportsChannelId": null,
     "welcomeChannelId": null,
     "welcome": {
-      "enabled": true,
-      "channelId": "1437922699467817203",
-      "message": "Benvenuto {user} in **{server}**! 🎉",
-      "embed": {
-        "enabled": true,
-        "thumbnail": "server",
-        "customThumbUrl": null,
-        "title": "☁️ Benvenuto su Nimbus",
-        "description": "Benvenuto nel server ufficiale di **Nimbus**, la piattaforma di automazione e moderazione per Discord.\n\n> Leggi le #📗┆rules e segui i canali dedicati per restare aggiornato su novità e miglioramenti.\n> Per assistenza o segnalazioni, apri un ticket in #🎫┆support-ticket.",
-        "footer": "nimbus • cloud automation"
-      },
-      "autoroleId": "1437907253423378644",
-      "pingUser": true
+      "enabled": false,
+      "channelId": null,
+      "message": "Benvenuto {user} in **{server}**! 🎉"
     },
     "automod": {
       "enabled": true,
