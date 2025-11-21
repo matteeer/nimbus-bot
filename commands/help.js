@@ -62,7 +62,7 @@ function buildHelpEmbed(category, client) {
             '**/setup automod** – configura il sistema AutoMod (on/off).',
             '**/setup channels** - imposta i canali di servizio (tickets/report user)',
             '**/setup log** - imposta il canale dei log di moderazione/sistema',
-            '**/setup reset - resetta la configurazione base di Nimbus (log e canali di servizio)', 
+            '**/setup reset** - resetta la configurazione base di Nimbus (log e canali di servizio)', 
             '**/welcome** – apre il pannello per configurare i messaggi di benvenuto.',
             '**/ticket panel** – imposta il pannello ticket.'
           ].join('\n')
