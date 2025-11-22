@@ -1,46 +1,11 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
   .setName('health')
   .setDescription('Esegue un controllo diagnostico completo sul bot.');
 
 export async function execute(interaction) {
-  const services = {
-    discordApi: interaction.client.ws.status === 0 ? '🟢 Online' : '🔴 Problemi',
-    token: process.env.DISCORD_TOKEN ? '🟢 Presente' : '🔴 MANCANTE',
-    nodeVersion: process.version,
-    commandsLoaded: interaction.client.commands.size,
-  };
-
-  const lastRestart = new Date(Date.now() - process.uptime() * 1000);
-
-  const embed = new EmbedBuilder()
-    .setTitle('🩺 Nimbus Diagnostics')
-    .setColor('#5865F2')
-    .addFields(
-      { name: '📡 Discord API', value: services.discordApi, inline: true },
-      { name: '🔑 Token', value: services.token, inline: true },
-      { name: '📦 Comandi registrati', value: `${services.commandsLoaded}`, inline: true },
-      { name: '🟦 Node.js', value: services.nodeVersion, inline: true },
-      { name: '🔄 Ultimo restart', value: `<t:${Math.floor(lastRestart.getTime()/1000)}:R>` },
-    )
-    .setFooter({ text: 'Nimbus system check • Tutto sotto controllo 🤖' });
-
-  // Bottone per refresh immediato
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('HEALTH_REFRESH')
-      .setLabel('🔄 Aggiorna diagnostica')
-      .setStyle(ButtonStyle.Primary)
-  );
-
-  await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
-}
-
-// Handler per il bottone
-export async function handleHealthButton(interaction) {
-  if (!interaction.isButton()) return;
-  if (interaction.customId !== 'HEALTH_REFRESH') return;
+  console.log('[HEALTH] Comando eseguito da', interaction.user.tag);
 
   const services = {
     discordApi: interaction.client.ws.status === 0 ? '🟢 Online' : '🔴 Problemi',
@@ -59,9 +24,9 @@ export async function handleHealthButton(interaction) {
       { name: '🔑 Token', value: services.token, inline: true },
       { name: '📦 Comandi registrati', value: `${services.commandsLoaded}`, inline: true },
       { name: '🟦 Node.js', value: services.nodeVersion, inline: true },
-      { name: '🔄 Ultimo restart', value: `<t:${Math.floor(lastRestart.getTime()/1000)}:R>` },
+      { name: '🔄 Ultimo restart', value: `<t:${Math.floor(lastRestart.getTime() / 1000)}:R>` }
     )
     .setFooter({ text: 'Nimbus system check • Tutto sotto controllo 🤖' });
 
-  await interaction.update({ embeds: [embed] });
+  await interaction.reply({ embeds: [embed], ephemeral: true });
 }

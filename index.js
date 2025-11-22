@@ -6,18 +6,21 @@ import {
   Events,
   ActivityType,
   Collection,
-  EmbedBuilder
+  EmbedBuilder,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle
 } from 'discord.js';
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { ensureGuild, getGuildSettings } from './utils/settings.js';
+import { ensureGuild, getGuildSettings, saveGuildSettings } from './utils/settings.js';
 import { registerAutomod } from './automod/index.js';
 import { handleHelpButton } from './commands/help.js';
 import { handleTicketButton, handleTicketModal } from './commands/ticket.js';
-import { handleWelcomeButton, handleWelcomeModal, handleWelcomeSelect } from './commands/welcome.js';
 import { handleLockButton } from './commands/lock.js';
 import { handleAutomodButtons } from './commands/setupautomod.js';
 
@@ -52,9 +55,7 @@ async function attachRuntimeCommands() {
   for (const file of files) {
     try {
       const mod = await import(`./commands/${file}`);
-      if (mod?.data && mod?.execute) {
-        client.commands.set(mod.data.name, mod);
-      }
+      if (mod?.data && mod?.execute) client.commands.set(mod.data.name, mod);
     } catch (e) {
       console.error(`❌ Errore nel caricare ${file}:`, e);
     }
@@ -80,11 +81,7 @@ function startPresenceRotation() {
       { name: `🕒 Uptime: ${formatUptime(Date.now() - startedAt)}`, type: ActivityType.Competing }
     ];
     const next = activities[i % activities.length];
-    try { 
-      client.user.setPresence({ activities: [next], status: 'online' }); 
-    } catch (e) { 
-      console.error('Errore setPresence:', e); 
-    }
+    try { client.user.setPresence({ activities: [next], status: 'online' }); } catch {}
     i++;
   }, 45_000);
 }
@@ -95,7 +92,56 @@ client.once(Events.ClientReady, async c => {
   startPresenceRotation();
 });
 
-// ===== Interazioni =====
+// ===== Funzioni Welcome =====
+async function handleWelcomeSelect(interaction) {
+  ensureGuild(interaction.guild.id);
+  const settings = getGuildSettings(interaction.guild.id);
+
+  const selectedChannelId = interaction.values[0];
+  settings.welcome.channelId = selectedChannelId;
+  await saveGuildSettings(interaction.guild.id, settings);
+
+  await interaction.reply({ content: `✅ Canale welcome impostato su <#${selectedChannelId}>`, ephemeral: true });
+}
+
+async function handleWelcomeButton(interaction) {
+  ensureGuild(interaction.guild.id);
+  const settings = getGuildSettings(interaction.guild.id);
+
+  settings.welcome.enabled = !settings.welcome.enabled;
+  await saveGuildSettings(interaction.guild.id, settings);
+
+  const status = settings.welcome.enabled ? '🟢 Attivo' : '🔴 Disattivato';
+
+  // Select menu canali
+  const row = new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId('NIMBUS_WEL_SELECT')
+      .setPlaceholder('Seleziona il canale di benvenuto')
+      .addOptions(
+        interaction.guild.channels.cache
+          .filter(c => c.isTextBased())
+          .map(c => ({ label: c.name, value: c.id }))
+      )
+  );
+
+  // Toggle button
+  const toggleButton = new ButtonBuilder()
+    .setCustomId('NIMBUS_WEL_TOGGLE')
+    .setLabel(settings.welcome.enabled ? 'Disattiva' : 'Attiva')
+    .setStyle(settings.welcome.enabled ? ButtonStyle.Danger : ButtonStyle.Success);
+
+  const buttonRow = new ActionRowBuilder().addComponents(toggleButton);
+
+  const embed = new EmbedBuilder()
+    .setTitle('🤖 Welcome Panel')
+    .setDescription(`Stato: **${status}**\nSeleziona un canale e premi Attiva per salvare`)
+    .setColor('#5865F2');
+
+  await interaction.update({ embeds: [embed], components: [row, buttonRow] });
+}
+
+// ===== Interaction handler =====
 client.on(Events.InteractionCreate, async interaction => {
   try {
     if (interaction.isChatInputCommand()) {
@@ -112,19 +158,16 @@ client.on(Events.InteractionCreate, async interaction => {
       if (id.startsWith('AUTOMOD_')) return await handleAutomodButtons(interaction);
 
     } else if (interaction.isStringSelectMenu()) {
-      if (interaction.customId.startsWith('NIMBUS_WEL_')) {
-        return await handleWelcomeSelect(interaction);
-      }
+      if (interaction.customId.startsWith('NIMBUS_WEL')) return handleWelcomeSelect(interaction);
 
     } else if (interaction.isModalSubmit()) {
-      if (interaction.customId === 'NIMBUS_WEL_MODAL_MSG') return await handleWelcomeModal(interaction);
+      if (interaction.customId === 'NIMBUS_WEL_MODAL_MSG') return; // se vuoi il messaggio custom
       if (interaction.customId.startsWith('NIMBUS_TICKET_MODAL_')) return await handleTicketModal(interaction);
     }
-
   } catch (e) {
     console.error('Interaction handler error:', e);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '❌ Errore', ephemeral: true }).catch(err => console.error(err));
+      await interaction.reply({ content: '❌ Errore', ephemeral: true }).catch(() => {});
     }
   }
 });
@@ -139,7 +182,7 @@ client.on(Events.GuildMemberAdd, async member => {
 
     const ch =
       member.guild.channels.cache.get(w.channelId) ??
-      await member.guild.channels.fetch(w.channelId).catch(e => { console.error('Errore fetch channel:', e); return null; });
+      await member.guild.channels.fetch(w.channelId).catch(() => null);
     if (!ch || !ch.isTextBased()) return;
 
     const mention = w.pingUser ? member.toString() : `**${member.user.tag}**`;
@@ -166,7 +209,7 @@ client.on(Events.GuildMemberAdd, async member => {
 registerAutomod(client);
 
 // ===== Login =====
-client.login(TOKEN).catch(e => {
-  console.error('❌ Login fallito', e);
+client.login(TOKEN).catch(err => {
+  console.error('❌ Login fallito', err);
   process.exit(1);
 });
