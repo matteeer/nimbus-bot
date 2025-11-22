@@ -17,7 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { ensureGuild, getGuildSettings, saveGuildSettings } from './utils/settings.js';
+import { ensureGuild, getGuildSettings, setGuildSettings } from './utils/settings.js';
 import { registerAutomod } from './automod/index.js';
 import { handleHelpButton } from './commands/help.js';
 import { handleTicketButton, handleTicketModal } from './commands/ticket.js';
