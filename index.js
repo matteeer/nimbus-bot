@@ -264,7 +264,6 @@ if (interaction.isModalSubmit()) {
 }
 });
 
-// ===== Welcome on join (unico messaggio) =====
 client.on(Events.GuildMemberAdd, async (member) => {
   try {
     ensureGuild(member.guild.id);
@@ -280,29 +279,24 @@ client.on(Events.GuildMemberAdd, async (member) => {
     if (!ch || !ch.isTextBased()) return;
 
     const pingUser = w.pingUser ?? true;
-    const useEmbed = w.embed ?? true;
+    const useEmbed = w.embed?.enabled ?? false;
 
     const mention = pingUser ? member.toString() : `**${member.user.tag}**`;
     const allowedMentions = pingUser ? { users: [member.id] } : { parse: [] };
+
+    const msg = w.message || `${mention} è entrato in **${member.guild.name}** 🎉`;
 
     if (useEmbed) {
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
         .setTitle('Benvenuto!')
-        .setDescription(`${mention} è entrato in **${member.guild.name}** 🎉`)
+        .setDescription(msg)
         .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
         .setTimestamp();
 
-      await ch.send({
-        content: pingUser ? mention : null,
-        embeds: [embed],
-        allowedMentions,
-      });
+      await ch.send({ content: pingUser ? mention : null, embeds: [embed], allowedMentions });
     } else {
-      await ch.send({
-        content: `Benvenuto ${mention} in **${member.guild.name}** 🎉`,
-        allowedMentions,
-      });
+      await ch.send({ content: msg, allowedMentions });
     }
   } catch (e) {
     console.error('welcome join error:', e);
