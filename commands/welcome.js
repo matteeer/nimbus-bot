@@ -1,5 +1,6 @@
 import { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { ensureGuild, getGuildSettings, saveGuildSettings } from '../utils/settings.js';
+import { ensureGuild, getGuildSettings, setGuildSettings } from '../utils/settings.js';
+
 
 // ===== BUTTON / TOGGLE =====
 export async function handleWelcomeButton(interaction) {
