@@ -6,10 +6,7 @@ import {
   Events,
   ActivityType,
   Collection,
-  EmbedBuilder,
-  REST,
-  Routes,
-  MessageFlags
+  EmbedBuilder
 } from 'discord.js';
 
 import fs from 'node:fs';
@@ -23,8 +20,6 @@ import { handleTicketButton, handleTicketModal } from './commands/ticket.js';
 import { handleWelcomeButton, handleWelcomeModal, handleWelcomeSelect } from './commands/welcome.js';
 import { handleLockButton } from './commands/lock.js';
 import { handleAutomodButtons } from './commands/setupautomod.js';
-
-
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -85,7 +80,11 @@ function startPresenceRotation() {
       { name: `🕒 Uptime: ${formatUptime(Date.now() - startedAt)}`, type: ActivityType.Competing }
     ];
     const next = activities[i % activities.length];
-    try { client.user.setPresence({ activities: [next], status: 'online' }); } catch {}
+    try { 
+      client.user.setPresence({ activities: [next], status: 'online' }); 
+    } catch (e) { 
+      console.error('Errore setPresence:', e); 
+    }
     i++;
   }, 45_000);
 }
@@ -112,14 +111,7 @@ client.on(Events.InteractionCreate, async interaction => {
       if (id.startsWith('NIMBUS_LOCK_')) return await handleLockButton(interaction);
       if (id.startsWith('AUTOMOD_')) return await handleAutomodButtons(interaction);
 
-      else if (interaction.isStringSelectMenu()) {
-  // qui intercetti il select menu
-  if (interaction.customId.startsWith('NIMBUS_WEL_')) {
-    return await handleWelcomeSelect(interaction);
-  }
-
     } else if (interaction.isStringSelectMenu()) {
-      // gestisce il select menu del welcome
       if (interaction.customId.startsWith('NIMBUS_WEL_')) {
         return await handleWelcomeSelect(interaction);
       }
@@ -132,7 +124,7 @@ client.on(Events.InteractionCreate, async interaction => {
   } catch (e) {
     console.error('Interaction handler error:', e);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '❌ Errore', ephemeral: true }).catch(() => {});
+      await interaction.reply({ content: '❌ Errore', ephemeral: true }).catch(err => console.error(err));
     }
   }
 });
@@ -147,7 +139,7 @@ client.on(Events.GuildMemberAdd, async member => {
 
     const ch =
       member.guild.channels.cache.get(w.channelId) ??
-      await member.guild.channels.fetch(w.channelId).catch(() => null);
+      await member.guild.channels.fetch(w.channelId).catch(e => { console.error('Errore fetch channel:', e); return null; });
     if (!ch || !ch.isTextBased()) return;
 
     const mention = w.pingUser ? member.toString() : `**${member.user.tag}**`;
@@ -174,7 +166,7 @@ client.on(Events.GuildMemberAdd, async member => {
 registerAutomod(client);
 
 // ===== Login =====
-client.login(TOKEN).catch(err => {
-  console.error('❌ Login fallito', err);
+client.login(TOKEN).catch(e => {
+  console.error('❌ Login fallito', e);
   process.exit(1);
 });
