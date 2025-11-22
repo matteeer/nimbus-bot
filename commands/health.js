@@ -5,12 +5,13 @@ export const data = new SlashCommandBuilder()
   .setDescription('Esegue un controllo diagnostico completo sul bot.');
 
 export async function execute(interaction) {
+  const client = interaction.client;
 
   const services = {
-    discordApi: interaction.client.ws.status === 0 ? '🟢 Online' : '🔴 Problemi',
-    token: process.env.TOKEN ? '🟢 Presente' : '🔴 MANCANTE',
+    discordApi: client.ws.status === 0 ? '🟢 Online' : '🔴 Problemi',
+    token: process.env.DISCORD_TOKEN ? '🟢 Presente' : '🔴 MANCANTE',
     nodeVersion: process.version,
-    commandsLoaded: interaction.client.commands.size,
+    commandsLoaded: client.commands.size,
   };
 
   const lastRestart = new Date(Date.now() - process.uptime() * 1000);
@@ -23,7 +24,7 @@ export async function execute(interaction) {
       { name: '🔑 Token', value: services.token, inline: true },
       { name: '📦 Comandi registrati', value: `${services.commandsLoaded}`, inline: true },
       { name: '🟦 Node.js', value: services.nodeVersion, inline: true },
-      { name: '🔄 Ultimo restart', value: `<t:${Math.floor(lastRestart.getTime()/1000)}:R>` },
+      { name: '🔄 Ultimo restart', value: `<t:${Math.floor(lastRestart.getTime() / 1000)}:R>` },
     )
     .setFooter({ text: 'Nimbus system check • Tutto sotto controllo 🤖' });
 

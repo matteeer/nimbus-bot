@@ -1,69 +1,62 @@
-// index.js
 import 'dotenv/config';
 import {
-  Client, GatewayIntentBits, Partials, Events, ActivityType,
-  Collection, EmbedBuilder, REST, Routes, MessageFlags,
-  Status
+  Client,
+  GatewayIntentBits,
+  Partials,
+  Events,
+  ActivityType,
+  Collection,
+  EmbedBuilder,
+  REST,
+  Routes,
+  MessageFlags
 } from 'discord.js';
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// === Utils & moduli del progetto ===
-import { registerAutomod } from './automod/index.js';
 import { ensureGuild, getGuildSettings } from './utils/settings.js';
-import { nEmbed } from './utils/ui.js';
-
-// Handlers componenti
+import { registerAutomod } from './automod/index.js';
 import { handleHelpButton } from './commands/help.js';
 import { handleTicketButton, handleTicketModal } from './commands/ticket.js';
 import { handleWelcomeButton, handleWelcomeModal } from './commands/welcome.js';
 import { handleLockButton } from './commands/lock.js';
 import { handleAutomodButtons } from './commands/setupautomod.js';
 
-
-
-// === Setup pathing ===
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// === Env ===
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
+
 if (!TOKEN || !CLIENT_ID) {
   console.error('❌ DISCORD_TOKEN o CLIENT_ID mancanti nello .env');
   process.exit(1);
 }
 
-// === Client ===
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,      // welcome & autorole
+    GatewayIntentBits.GuildMembers,      // per welcome
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,    // automod (se lo usi)
-    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.MessageContent
   ],
-  partials: [Partials.Channel],
+  partials: [Partials.Channel]
 });
 
 client.commands = new Collection();
 
-// ===== Loader comandi (runtime) =====
+// ===== Load comandi runtime =====
 const commandsPath = path.join(__dirname, 'commands');
-
-function listCommandFiles() {
-  if (!fs.existsSync(commandsPath)) return [];
-  return fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
-}
 async function attachRuntimeCommands() {
-  const files = listCommandFiles();
+  if (!fs.existsSync(commandsPath)) return;
+  const files = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
   for (const file of files) {
     try {
       const mod = await import(`./commands/${file}`);
       if (mod?.data && mod?.execute) {
-        client.commands.set(mod.data.name, { data: mod.data, execute: mod.execute });
+        client.commands.set(mod.data.name, mod);
       }
     } catch (e) {
       console.error(`❌ Errore nel caricare ${file}:`, e);
@@ -73,228 +66,85 @@ async function attachRuntimeCommands() {
 await attachRuntimeCommands();
 
 // ===== Presenza dinamica =====
-let presenceTimer = null;
 const startedAt = Date.now();
-
 function formatUptime(ms) {
   const s = Math.floor(ms / 1000);
-  const d = Math.floor(s / 86400);
-  const h = Math.floor((s % 86400) / 3600);
+  const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
-  return d ? `${d}d ${h}h ${m}m` : `${h}h ${m}m`;
+  return `${h}h ${m}m`;
 }
-function buildActivities(c) {
-  const guilds = c.guilds.cache.size;
-  const users = c.users.cache.size || '—';
-  const up = formatUptime(Date.now() - startedAt);
-  return [
-    { name: `Nimbus v1.0 ⚙️`, type: ActivityType.Watching },
-    { name: `⚙️ /setup per configurare Nimbus`, type: ActivityType.Playing },
-    { name: `🧠 Automoderazione attiva`, type: ActivityType.Listening },
-    { name: `📩 Gestendo ticket e report`, type: ActivityType.Playing },
-    { name: `🕒 Uptime: ${up}`, type: ActivityType.Competing },
-    { name: `💬 Scrivi /help per iniziare`, type: ActivityType.Watching },
-    { name: `🛡️ Proteggendo la community`, type: ActivityType.Playing },
-    { name: `Powered by Nimbus Technologies ☁️`, type: ActivityType.Competing },
-  ];
-}
-function safeSetPresence(c, activity) {
-  try {
-    c.user.setPresence({ activities: [activity], status: 'online' });
-  } catch { /* no-op */ }
-}
-function startPresenceRotation(c) {
+
+function startPresenceRotation() {
   let i = 0;
-
-  function updatePresence() {
-    const status = c.user?.presence?.status;
-    const up = formatUptime(Date.now() - startedAt);
-
-    // se il bot è in manutenzione (idle/dnd)
-    if (status === 'idle' || status === 'dnd') {
-      const maintList = [
-        { name: `🧰 Manutenzione in corso`, type: ActivityType.Playing },
-        { name: `⚙️ Aggiornamenti del sistema Nimbus`, type: ActivityType.Watching },
-        { name: `🔄 Riavvio dei moduli`, type: ActivityType.Listening },
-        { name: `🕒 Uptime: ${up}`, type: ActivityType.Competing },
-      ];
-      const m = maintList[i % maintList.length];
-      try { c.user.setPresence({ activities: [m], status }); } catch {}
-      i++;
-      return;
-    }
-
-    // normale rotazione
-    const list = buildActivities(c);
-    const next = list[i % list.length];
-    try { c.user.setPresence({ activities: [next], status: 'online' }); } catch {}
+  setInterval(() => {
+    const activities = [
+      { name: `Nimbus v1.0 ⚙️`, type: ActivityType.Watching },
+      { name: `💬 Scrivi /help per iniziare`, type: ActivityType.Watching },
+      { name: `🕒 Uptime: ${formatUptime(Date.now() - startedAt)}`, type: ActivityType.Competing }
+    ];
+    const next = activities[i % activities.length];
+    try { client.user.setPresence({ activities: [next], status: 'online' }); } catch {}
     i++;
-  }
-
-  updatePresence(); // prima esecuzione
-  presenceTimer = setInterval(updatePresence, 45_000);
+  }, 45_000);
 }
 
-function stopPresenceRotation() {
-  if (presenceTimer) clearInterval(presenceTimer);
-  presenceTimer = null;
-}
-
-// ===== READY: presenza + BOOT-FIX (pulisci SEMPRE GUILD) =====
-client.once(Events.ClientReady, async (c) => {
-  console.log(`✅ ${c.user.tag} (Nimbus) online | Guilds: ${c.guilds.cache.size}`);
-  startPresenceRotation(c);
-
-  // BOOT-FIX: svuota i comandi GUILD (teniamo solo GLOBAL)
-  try {
-    const rest = new REST({ version: '10' }).setToken(TOKEN);
-    const guilds = await c.guilds.fetch();
-    for (const g of guilds.values()) {
-      await rest.put(Routes.applicationGuildCommands(CLIENT_ID, g.id), { body: [] });
-      console.log(`🧽 Puliti GUILD commands su ${g.id}`);
-    }
-  } catch (e) {
-    console.error('Errore pulizia GUILD on-boot:', e);
-  }
+// ===== READY =====
+client.once(Events.ClientReady, async c => {
+  console.log(`✅ ${c.user.tag} online | Guilds: ${c.guilds.cache.size}`);
+  startPresenceRotation();
 });
 
-// Quando il bot entra in un nuovo server → pulisci i comandi GUILD (niente doppioni)
-client.on(Events.GuildCreate, async (guild) => {
+// ===== Slash command handler =====
+client.on(Events.InteractionCreate, async interaction => {
   try {
-    const rest = new REST({ version: '10' }).setToken(TOKEN);
-    await rest.put(Routes.applicationGuildCommands(CLIENT_ID, guild.id), { body: [] });
-    console.log(`🧽 Puliti GUILD commands su nuova guild ${guild.id}`);
-  } catch (e) {
-    console.error(`Errore pulizia GUILD su nuova guild ${guild.id}:`, e);
-  }
-});
-
-// ===== Interazioni (slash, bottoni, select, modali) =====
-client.on(Events.InteractionCreate, async (interaction) => {
-  // Slash
-  if (interaction.isChatInputCommand()) {
-    const cmd = client.commands.get(interaction.commandName);
-    if (!cmd) return;
-    try {
+    if (interaction.isChatInputCommand()) {
+      const cmd = client.commands.get(interaction.commandName);
+      if (!cmd) return;
       await cmd.execute(interaction);
-    } catch (err) {
-      console.error(err);
-      const embed = new EmbedBuilder()
-        .setColor(0xED4245)
-        .setDescription('❌ Errore durante l’esecuzione del comando.')
-        .setTimestamp();
-      if (interaction.deferred || interaction.replied) {
-        await interaction.followUp({ embeds: [embed], flags: MessageFlags.Ephemeral }).catch(() => {});
-      } else {
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral }).catch(() => {});
-      }
-    }
-    return;
-  }
-
-// Bottoni
-if (interaction.isButton()) {
-  try {
-    const id = interaction.customId;
-
-    if (id.startsWith('HELP_')) return await handleHelpButton(interaction);
-    if (id.startsWith('NIMBUS_WEL_')) return await handleWelcomeButton(interaction);
-    if (id.startsWith('NIMBUS_TICKET_')) return await handleTicketButton(interaction);
-    if (id.startsWith('NIMBUS_LOCK_')) return await handleLockButton(interaction);
-    if (id.startsWith('AUTOMOD_')) return await handleAutomodButtons(interaction);
-
-  } catch (e) {
-    console.error('Button handler error:', e);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: '❌ Qualcosa è andato storto con il bottone.',
-        ephemeral: true,
-      }).catch(() => {});
-    }
-  }
-  return;
-}
-
-
-  // Select menu (string/role/channel/user/mentionable)
-  if (
-    interaction.isStringSelectMenu() ||
-    interaction.isRoleSelectMenu() ||
-    interaction.isChannelSelectMenu() ||
-    interaction.isUserSelectMenu() ||
-    interaction.isMentionableSelectMenu()
-  ) {
-    try {
+    } else if (interaction.isButton()) {
       const id = interaction.customId;
-      if (id.startsWith('NIMBUS_WEL_')) {
-        return await handleWelcomeSelect(interaction);
-      }
-    } catch (e) {
-      console.error('Select handler error:', e);
+      if (id.startsWith('HELP_')) return await handleHelpButton(interaction);
+      if (id.startsWith('NIMBUS_WEL_')) return await handleWelcomeButton(interaction);
+      if (id.startsWith('NIMBUS_TICKET_')) return await handleTicketButton(interaction);
+      if (id.startsWith('NIMBUS_LOCK_')) return await handleLockButton(interaction);
+      if (id.startsWith('AUTOMOD_')) return await handleAutomodButtons(interaction);
+    } else if (interaction.isModalSubmit()) {
+      if (interaction.customId === 'NIMBUS_WEL_MODAL_MSG') return await handleWelcomeModal(interaction);
+      if (interaction.customId.startsWith('NIMBUS_TICKET_MODAL_')) return await handleTicketModal(interaction);
     }
-    return;
-  }
-
-  // Modali
-if (interaction.isModalSubmit()) {
-  try {
-    const id = interaction.customId;
-
-    if (id === 'NIMBUS_WEL_MODAL_MSG') {
-      return await handleWelcomeModal(interaction);
-    }
-      // Ticket modali
-      if (
-        id.startsWith('NIMBUS_TICKET_MODAL_') ||
-        id === 'NIMBUS_TICKET_ADD_MODAL' ||
-        id === 'NIMBUS_TICKET_REM_MODAL'
-      ) {
-        return await handleTicketModal(interaction);
-      }
   } catch (e) {
-    console.error('Modal handler error:', e);
+    console.error('Interaction handler error:', e);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: '❌ Errore nella modale.',
-        ephemeral: true,
-      }).catch(() => {});
+      await interaction.reply({ content: '❌ Errore', ephemeral: true }).catch(() => {});
     }
   }
-  return;
-}
 });
 
-client.on(Events.GuildMemberAdd, async (member) => {
+// ===== Welcome join =====
+client.on(Events.GuildMemberAdd, async member => {
   try {
     ensureGuild(member.guild.id);
     const settings = getGuildSettings(member.guild.id);
     const w = settings.welcome;
-
-    if (!w || !w.enabled || !w.channelId) return;
+    if (!w?.enabled || !w.channelId) return;
 
     const ch =
       member.guild.channels.cache.get(w.channelId) ??
-      (await member.guild.channels.fetch(w.channelId).catch(() => null));
-
+      await member.guild.channels.fetch(w.channelId).catch(() => null);
     if (!ch || !ch.isTextBased()) return;
 
-    const pingUser = w.pingUser ?? true;
-    const useEmbed = w.embed?.enabled ?? false;
+    const mention = w.pingUser ? member.toString() : `**${member.user.tag}**`;
+    const allowedMentions = w.pingUser ? { users: [member.id] } : { parse: [] };
+    const msg = w.message?.replace('{user}', mention).replace('{server}', member.guild.name) || `${mention} è entrato in **${member.guild.name}** 🎉`;
 
-    const mention = pingUser ? member.toString() : `**${member.user.tag}**`;
-    const allowedMentions = pingUser ? { users: [member.id] } : { parse: [] };
-
-    const msg = w.message || `${mention} è entrato in **${member.guild.name}** 🎉`;
-
-    if (useEmbed) {
+    if (w.embed?.enabled) {
       const embed = new EmbedBuilder()
         .setColor(0x5865f2)
         .setTitle('Benvenuto!')
         .setDescription(msg)
         .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
         .setTimestamp();
-
-      await ch.send({ content: pingUser ? mention : null, embeds: [embed], allowedMentions });
+      await ch.send({ content: w.pingUser ? mention : null, embeds: [embed], allowedMentions });
     } else {
       await ch.send({ content: msg, allowedMentions });
     }
@@ -308,25 +158,6 @@ registerAutomod(client);
 
 // ===== Login =====
 client.login(TOKEN).catch(err => {
-  console.error('❌ Login fallito. Controlla DISCORD_TOKEN e le Intents.', err);
+  console.error('❌ Login fallito', err);
   process.exit(1);
 });
-
-// ===== Graceful shutdown =====
-async function gracefulShutdown(label = 'shutdown') {
-  try {
-    console.log(`\n🛑 Nimbus: ${label}…`);
-    stopPresenceRotation();
-    try { client.user?.setPresence({ status: 'invisible' }); } catch {}
-    await client.destroy();
-  } catch (e) {
-    console.error('Errore in gracefulShutdown:', e);
-  } finally {
-    process.exit(0);
-  }
-}
-process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('uncaughtException', (err) => { console.error(err); gracefulShutdown('uncaughtException'); });
-process.on('unhandledRejection', (r) => { console.error(r); gracefulShutdown('unhandledRejection'); });
-
