@@ -20,9 +20,11 @@ import { ensureGuild, getGuildSettings } from './utils/settings.js';
 import { registerAutomod } from './automod/index.js';
 import { handleHelpButton } from './commands/help.js';
 import { handleTicketButton, handleTicketModal } from './commands/ticket.js';
-import { handleWelcomeButton, handleWelcomeModal } from './commands/welcome.js';
+import { handleWelcomeButton, handleWelcomeModal, handleWelcomeSelect } from './commands/welcome.js';
 import { handleLockButton } from './commands/lock.js';
 import { handleAutomodButtons } from './commands/setupautomod.js';
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,7 +40,7 @@ if (!TOKEN || !CLIENT_ID) {
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,      // per welcome
+    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent
   ],
@@ -94,13 +96,14 @@ client.once(Events.ClientReady, async c => {
   startPresenceRotation();
 });
 
-// ===== Slash command handler =====
+// ===== Interazioni =====
 client.on(Events.InteractionCreate, async interaction => {
   try {
     if (interaction.isChatInputCommand()) {
       const cmd = client.commands.get(interaction.commandName);
       if (!cmd) return;
       await cmd.execute(interaction);
+
     } else if (interaction.isButton()) {
       const id = interaction.customId;
       if (id.startsWith('HELP_')) return await handleHelpButton(interaction);
@@ -108,10 +111,24 @@ client.on(Events.InteractionCreate, async interaction => {
       if (id.startsWith('NIMBUS_TICKET_')) return await handleTicketButton(interaction);
       if (id.startsWith('NIMBUS_LOCK_')) return await handleLockButton(interaction);
       if (id.startsWith('AUTOMOD_')) return await handleAutomodButtons(interaction);
+
+      else if (interaction.isStringSelectMenu()) {
+  // qui intercetti il select menu
+  if (interaction.customId.startsWith('NIMBUS_WEL_')) {
+    return await handleWelcomeSelect(interaction);
+  }
+
+    } else if (interaction.isStringSelectMenu()) {
+      // gestisce il select menu del welcome
+      if (interaction.customId.startsWith('NIMBUS_WEL_')) {
+        return await handleWelcomeSelect(interaction);
+      }
+
     } else if (interaction.isModalSubmit()) {
       if (interaction.customId === 'NIMBUS_WEL_MODAL_MSG') return await handleWelcomeModal(interaction);
       if (interaction.customId.startsWith('NIMBUS_TICKET_MODAL_')) return await handleTicketModal(interaction);
     }
+
   } catch (e) {
     console.error('Interaction handler error:', e);
     if (!interaction.replied && !interaction.deferred) {
